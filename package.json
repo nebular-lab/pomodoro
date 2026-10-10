@@ -9,34 +9,48 @@
     "dev": "vite dev --port 3000",
     "build": "vite build",
     "preview": "vite preview",
+    "deploy": "pnpm run build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "db:generate": "auth generate --config src/lib/auth.cli.ts --adapter drizzle --dialect sqlite --output src/db/auth-schema.ts -y && drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply pomodoro --local",
+    "db:migrate:remote": "wrangler d1 migrations apply pomodoro --remote",
+    "user:create": "node scripts/create-user.mjs",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.7",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-router": "1.170.42",
     "@tanstack/react-router-devtools": "1.167.2",
     "@tanstack/react-start": "1.168.61",
+    "better-auth": "^1.7.7",
+    "drizzle-orm": "^0.45.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
+    "@cloudflare/vite-plugin": "^1.63.1",
     "@tanstack/devtools-vite": "0.8.5",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
+    "auth": "1.7.7",
+    "drizzle-kit": "^0.31.11",
     "typescript": "^6.0.2",
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "wrangler": "^4.149.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
-      "lightningcss"
+      "lightningcss",
+      "workerd"
     ]
   },
   "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
