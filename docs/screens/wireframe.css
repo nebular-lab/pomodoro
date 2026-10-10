@@ -1,0 +1,214 @@
+/*
+ * 画面設計書用ワイヤーフレームの共通スタイル。
+ * 見た目は「何がどこにあるか」だけを示す。色・フォントの作り込みはしない。
+ * PC 表示の前提で、部品どうしが詰まって見えないように、余白は広めにとる。
+ * 各画面の HTML はこのファイルを読み込むだけにし、独自の CSS は書かない。
+ */
+
+:root {
+  --line: #444;
+  --fill: #eee;
+  --muted: #888;
+  --badge: #e5484d;
+  --gap: 24px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 72px 56px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 88px 64px;
+  background: #f4f4f4;
+  color: #222;
+  font: 15px/1.6 system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+
+/* ---- 画面の枠 ---- */
+
+.screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  width: 1024px; /* PC 表示の前提 */
+  min-height: 640px;
+  padding: 40px 48px;
+  background: #fff;
+  border: 2px solid var(--line);
+}
+
+/* 状態名（通常・エラーなど）を枠の上に出す */
+.screen[data-title]::after {
+  content: attr(data-title);
+  position: absolute;
+  top: -32px;
+  left: 0;
+  font-weight: bold;
+  color: var(--muted);
+}
+
+/* ---- 配置 ---- */
+
+.row { display: flex; gap: var(--gap); align-items: center; }
+.row.between { justify-content: space-between; }
+.cols-2, .cols-3, .cols-4 { display: grid; gap: var(--gap); }
+.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.grow { flex: 1; }
+.spacer { flex: 1; }
+.stack { display: flex; flex-direction: column; gap: var(--gap); }
+
+/* ---- 領域 ---- */
+
+header, footer, nav, aside, .box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--fill);
+  border: 1.5px solid var(--line);
+}
+header.row, footer.row, nav.row, aside.row, .box.row { flex-direction: row; align-items: center; }
+.screen > header { margin: -40px -48px 0; padding: 16px 48px; border-width: 0 0 1.5px; }
+.screen > footer { margin: 0 -48px -40px; padding: 16px 48px; border-width: 1.5px 0 0; }
+
+/* ---- 文字 ---- */
+
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 24px; }
+h2 { font-size: 19px; }
+h3 { font-size: 16px; }
+small, .muted { color: var(--muted); }
+/* エラー表示。初期表示では出ない部品なので、点線の枠で描く */
+.error {
+  display: block;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #222;
+  border: 1.5px dashed var(--muted);
+}
+a { color: inherit; text-decoration: underline; }
+
+/* ---- 入力 ---- */
+
+.field { display: flex; flex-direction: column; gap: 8px; }
+label.check { display: flex; gap: 8px; align-items: center; }
+
+input, select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 0;
+}
+input[type="checkbox"], input[type="radio"] { width: auto; margin: 0; }
+textarea { min-height: 96px; resize: none; }
+
+button {
+  padding: 12px 28px;
+  font: inherit;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 0;
+}
+button.primary { background: var(--line); color: #fff; }
+
+/* 非活性 */
+input:disabled, select:disabled, textarea:disabled, button:disabled {
+  color: var(--muted);
+  background: var(--fill);
+  border-color: var(--muted);
+  border-style: dashed;
+}
+
+/* ---- 表示部品 ---- */
+
+.image {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  color: var(--muted);
+  border: 1.5px solid var(--line);
+  background: repeating-linear-gradient(45deg, #fff 0 8px, var(--fill) 8px 16px);
+}
+.image.thumb { flex: none; width: 48px; min-height: 48px; font-size: 11px; }
+
+.icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  border: 1.5px solid var(--line);
+}
+
+ul.list, ol.list { margin: 0; padding: 0; list-style: none; border: 1.5px solid var(--line); }
+ul.list > li, ol.list > li { padding: 16px; border-bottom: 1px solid var(--line); }
+ul.list > li:last-child, ol.list > li:last-child { border-bottom: 0; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 12px 16px; text-align: left; border: 1px solid var(--line); }
+th { background: var(--fill); }
+
+.tabs { display: flex; border-bottom: 1.5px solid var(--line); }
+.tabs > * { padding: 12px 24px; border: 1.5px solid transparent; border-bottom: 0; }
+.tabs > .active { border-color: var(--line); background: #fff; margin-bottom: -1.5px; }
+
+/* 描けないものを言葉で置いておく（例: 「ここに地図」） */
+.note {
+  padding: 16px;
+  color: var(--muted);
+  border: 1.5px dashed var(--muted);
+}
+
+/* ---- モーダル ---- */
+
+.modal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 2; /* 背面の部品番号より前に出す */
+  background: rgba(0, 0, 0, 0.35);
+}
+.modal > .dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  width: 480px;
+  max-width: 85%;
+  padding: 32px;
+  background: #fff;
+  border: 2px solid var(--line);
+}
+
+/* ---- 部品番号（設計書の No と対応） ---- */
+
+[data-no]:not(.modal) { position: relative; }
+[data-no]::before {
+  content: attr(data-no);
+  position: absolute;
+  /* 部品に重ならないように、部品の左上の外側に離して置く */
+  top: -12px;
+  left: -28px;
+  z-index: 1;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font: bold 11px/20px system-ui, sans-serif;
+  text-align: center;
+  color: #fff;
+  background: var(--badge);
+  border-radius: 10px;
+}
+
+/* 中に番号つきの部品を持つまとまり（表、ヘッダー、ダイアログなど）は、中の最初の部品の番号と重ならないように、さらに左へ離す */
+[data-no]:has([data-no])::before { left: -54px; }
