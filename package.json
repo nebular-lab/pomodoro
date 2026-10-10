@@ -15,6 +15,7 @@
     "db:migrate:local": "wrangler d1 migrations apply pomodoro --local",
     "db:migrate:remote": "wrangler d1 migrations apply pomodoro --remote",
     "user:create": "node scripts/create-user.mjs",
+    "api:export": "node scripts/export-openapi.mjs",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check"

@@ -7,6 +7,7 @@
 | [messages.md](messages.md) | メッセージ一覧。全画面で共通のメッセージ ID と文言 |
 | [common-rules.md](common-rules.md) | 共通ルール。全画面で同じになる扱い（入力、react-hook-form と TanStack Query の設定など） |
 | [wireframe.css](wireframe.css) | ワイヤーフレームの共通スタイル |
+| [auth-openapi.json](../api/auth-openapi.json) | ログインまわりの API 定義（OpenAPI）。Better Auth から `pnpm api:export` で書き出す。パスは `/api/auth` からの相対 |
 
 ## 共通ヘッダー
 
