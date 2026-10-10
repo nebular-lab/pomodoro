@@ -20,4 +20,4 @@
 
 | 画面 ID | 画面名 | URL | 共通ヘッダー | ワイヤーフレーム | 設計書 | Playwright テスト |
 | --- | --- | --- | --- | --- | --- | --- |
-| SCR-001 | ログイン | /login | - | [SCR-001_login.html](SCR-001_login/SCR-001_login.html) | - | - |
+| SCR-001 | ログイン | /login | - | [SCR-001_login.html](SCR-001_login/SCR-001_login.html) | [SCR-001_login.md](SCR-001_login/SCR-001_login.md) | - |
