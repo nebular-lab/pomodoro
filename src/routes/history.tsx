@@ -115,9 +115,9 @@ function HistoryPage() {
 			<h1 className="text-2xl font-bold">履歴</h1>
 
 			<Tabs value={view} onValueChange={selectView}>
-				<TabsList>
+				<TabsList className="group-data-horizontal/tabs:h-11">
 					{VIEWS.map((item) => (
-						<TabsTrigger key={item} value={item}>
+						<TabsTrigger key={item} value={item} className="px-5 text-base">
 							{VIEW_LABELS[item]}
 						</TabsTrigger>
 					))}
@@ -127,11 +127,12 @@ function HistoryPage() {
 			<div className="flex items-center justify-between">
 				<Button
 					variant="ghost"
-					size="icon"
+					size="icon-lg"
+					className="size-11"
 					aria-label="前の期間"
 					onClick={() => move(-1)}
 				>
-					<ChevronLeft />
+					<ChevronLeft className="size-6" />
 				</Button>
 				<div className="flex items-baseline gap-3">
 					<strong>{formatPeriod(view, period)}</strong>
@@ -141,12 +142,13 @@ function HistoryPage() {
 				</div>
 				<Button
 					variant="ghost"
-					size="icon"
+					size="icon-lg"
+					className="size-11"
 					aria-label="次の期間"
 					disabled={!canGoNext}
 					onClick={() => move(1)}
 				>
-					<ChevronRight />
+					<ChevronRight className="size-6" />
 				</Button>
 			</div>
 
