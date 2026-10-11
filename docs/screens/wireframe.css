@@ -169,6 +169,45 @@ th { background: var(--fill); }
   border: 1.5px dashed var(--muted);
 }
 
+/* ---- タイマー（SCR-002） ---- */
+
+.center { align-items: center; justify-content: center; text-align: center; }
+.huge { font-size: 112px; line-height: 1.1; font-weight: normal; }
+/* サイクルの進み具合。終えた回は塗り、今の回（動作中）は横長にする */
+.dots { display: flex; gap: 10px; align-items: center; }
+.dot { width: 18px; height: 18px; background: #fff; border: 1.5px solid var(--line); border-radius: 9px; }
+.dot.done { background: var(--line); }
+.dot.current { width: 64px; background: var(--fill); }
+button.round { width: 76px; height: 76px; padding: 0; font-size: 22px; border-radius: 38px; }
+button.plain { padding: 4px 10px; font-size: 20px; border: 0; background: none; }
+
+/* ---- 棒グラフ（SCR-004） ---- */
+
+.chart { display: flex; flex-direction: column; gap: 8px; }
+.bars { display: flex; gap: 8px; align-items: stretch; height: 240px; }
+.bar { position: relative; flex: 1; background: var(--fill); border-radius: 8px; }
+/* 棒の中を、タスクごとに積み上げる。.s1〜.s3 は長さ、.t1〜.t3 はタスクの色（実際の色は描かず、濃淡と斜線で区別する） */
+.bar { display: flex; flex-direction: column-reverse; overflow: hidden; }
+.seg { flex: none; }
+.seg.s1 { height: 15%; }
+.seg.s2 { height: 30%; }
+.seg.s3 { height: 45%; }
+.t1 { background: var(--line); }
+.t2 { background: var(--muted); }
+.t3 { background: repeating-linear-gradient(45deg, #fff 0 4px, var(--muted) 4px 8px); }
+.axis { display: flex; gap: 8px; font-size: 13px; color: var(--muted); }
+.axis > * { flex: 1; text-align: center; }
+
+/* ---- タスクの色（SCR-003） ---- */
+
+/* 色の見本。実際の色は描かず、丸で場所だけを示す */
+.swatch { display: inline-block; flex: none; width: 22px; height: 22px; background: var(--muted); border: 1.5px solid var(--line); border-radius: 11px; }
+/* 棒グラフの塗り分け（.t1〜.t3）と同じ見た目にする */
+.swatch.t1 { background: var(--line); }
+.swatch.t2 { background: var(--muted); }
+.swatch.t3 { background: repeating-linear-gradient(45deg, #fff 0 4px, var(--muted) 4px 8px); }
+input[type="color"] { width: 64px; height: 40px; padding: 2px; }
+
 /* ---- モーダル ---- */
 
 .modal {
@@ -179,6 +218,8 @@ th { background: var(--fill); }
   z-index: 2; /* 背面の部品番号より前に出す */
   background: rgba(0, 0, 0, 0.35);
 }
+/* 縦に長いダイアログが枠からはみ出さないように、モーダルを描く画面は高くする */
+.screen:has(.modal) { min-height: 860px; }
 .modal > .dialog {
   display: flex;
   flex-direction: column;

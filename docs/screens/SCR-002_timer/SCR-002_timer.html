@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>SCR-002 タイマー</title>
+  <link rel="stylesheet" href="../wireframe.css">
+</head>
+<body>
+
+  <section class="screen" data-title="通常（開始前）">
+    <header class="row between">
+      <strong>ポモドーロタイマー</strong>
+      <span class="row"><a>タイマー</a><a>タスク</a><a>履歴</a><a>設定</a></span>
+    </header>
+
+    <p class="error" data-no="1">通信に失敗しました。時間をおいてもう一度お試しください</p>
+
+    <div class="stack center">
+      <span class="huge" data-no="2">25:00</span>
+      <div class="row center">
+        <span class="dots" data-no="4"><span class="dot done"></span><span class="dot done"></span><span class="dot"></span><span class="dot"></span></span>
+      </div>
+      <button class="round" data-no="6">▶</button>
+    </div>
+
+    <div class="field"><label data-no="7">作業するタスク</label><div data-no="8"><select><option>タスクなし</option><option selected>仕様書を書く</option><option>画面設計</option></select></div><small class="error" data-no="9">TBD</small></div>
+
+    <div class="row"><span data-no="10">今日の合計作業時間</span><strong data-no="11">1 時間 15 分</strong></div>
+  </section>
+
+  <section class="screen" data-title="動作中">
+    <header class="row between">
+      <strong>ポモドーロタイマー</strong>
+      <span class="row"><a>タイマー</a><a>タスク</a><a>履歴</a><a>設定</a></span>
+    </header>
+
+    <div class="stack center">
+      <span class="huge">24:52</span>
+      <div class="row center">
+        <button class="plain" data-no="3">＜</button>
+        <span class="dots"><span class="dot done"></span><span class="dot done"></span><span class="dot current"></span><span class="dot"></span></span>
+        <button class="plain" data-no="5">＞</button>
+      </div>
+      <button class="round" data-no="12">||</button>
+    </div>
+
+    <div class="field"><label>作業するタスク</label><select disabled><option>タスクなし</option><option selected>仕様書を書く</option><option>画面設計</option></select></div>
+
+    <div class="row"><span>今日の合計作業時間</span><strong>1 時間 15 分</strong></div>
+  </section>
+
+  <section class="screen" data-title="一時停止中">
+    <header class="row between">
+      <strong>ポモドーロタイマー</strong>
+      <span class="row"><a>タイマー</a><a>タスク</a><a>履歴</a><a>設定</a></span>
+    </header>
+
+    <div class="stack center">
+      <span class="huge">24:52</span>
+      <div class="row center">
+        <button class="plain">＜</button>
+        <span class="dots"><span class="dot done"></span><span class="dot done"></span><span class="dot current"></span><span class="dot"></span></span>
+        <button class="plain">＞</button>
+      </div>
+      <button class="round" data-no="13">▶</button>
+    </div>
+
+    <div class="field"><label>作業するタスク</label><select disabled><option>タスクなし</option><option selected>仕様書を書く</option><option>画面設計</option></select></div>
+
+    <div class="row"><span>今日の合計作業時間</span><strong>1 時間 15 分</strong></div>
+  </section>
+
+  <section class="screen" data-title="読み込み中">
+    <header class="row between">
+      <strong>ポモドーロタイマー</strong>
+      <span class="row"><a>タイマー</a><a>タスク</a><a>履歴</a><a>設定</a></span>
+    </header>
+
+    <div class="note" data-no="14">読み込み中（タイマーの位置にスピナーを表示）</div>
+  </section>
+
+  <section class="screen" data-title="エラー">
+    <header class="row between">
+      <strong>ポモドーロタイマー</strong>
+      <span class="row"><a>タイマー</a><a>タスク</a><a>履歴</a><a>設定</a></span>
+    </header>
+
+    <p class="error" data-no="15">タイマーを読み込めませんでした。</p>
+    <div class="row"><button data-no="16">再読み込み</button></div>
+  </section>
+
+</body>
+</html>
