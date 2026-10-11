@@ -94,6 +94,8 @@ small, .muted { color: var(--muted); }
   border: 1.5px dashed var(--muted);
 }
 a { color: inherit; text-decoration: underline; }
+/* 共通ヘッダーで、今いる画面のリンク */
+a.active { font-weight: bold; text-decoration: none; border-bottom: 3px solid var(--line); }
 
 /* ---- 入力 ---- */
 
@@ -179,6 +181,8 @@ th { background: var(--fill); }
 .dot.done { background: var(--line); }
 .dot.current { width: 64px; background: var(--fill); }
 button.round { width: 76px; height: 76px; padding: 0; font-size: 22px; border-radius: 38px; }
+/* 休憩フェーズ。作業フェーズと、背景で区別する（実際の色はデザインで決める） */
+.screen.rest { background: var(--fill); }
 button.plain { padding: 4px 10px; font-size: 20px; border: 0; background: none; }
 
 /* ---- 棒グラフ（SCR-004） ---- */
