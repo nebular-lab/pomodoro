@@ -1,0 +1,444 @@
+openapi: 3.1.0
+info:
+  title: ポモドーロタイマー API
+  version: 0.1.0
+  description: |
+    タスク・作業記録・設定の API。ログインとログアウトは Better Auth の API（auth-openapi.json）を使う。
+    タイマーの状態はブラウザの中に持つので、タイマーを操作する API はない。
+
+    - どの操作も、ログインしていないと 401 を返す。
+    - 日付と「1 日」の区切りは日本時間（JST）。日時は UTC の ISO 8601 形式でやり取りする。
+    - エラーは、どのステータスでも `code`（失敗した理由を表すエラーコード）と `message`（開発者向けの説明）を返す。画面は、`code` に対応するメッセージを表示する。
+servers:
+  - url: http://localhost:3000
+security:
+  - session: []
+tags:
+  - name: tasks
+  - name: pomodoros
+  - name: history
+  - name: settings
+
+paths:
+  /api/tasks:
+    get:
+      tags: [tasks]
+      operationId: listTasks
+      summary: タスクの一覧を取る
+      description: 作成日時の古い順に返す。
+      parameters:
+        - name: archived
+          in: query
+          required: true
+          description: "`false` なら使用中のタスク、`true` ならアーカイブ済みのタスクだけを返す。"
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: タスクの一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tasks]
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    post:
+      tags: [tasks]
+      operationId: createTask
+      summary: タスクを追加する
+      description: |
+        アーカイブしていない状態で作る。色は、既定の 12 色の中からサーバーが自動的に設定する。
+        使用中（アーカイブしていない）のタスクで使われている数がいちばん少ない色を選び、同じ数の色が複数あるときは、既定の 12 色の並び順で先のものを選ぶ。
+        既定の 12 色（並び順）: 赤 `#EF4444`、オレンジ `#F97316`、黄 `#EAB308`、黄緑 `#84CC16`、緑 `#22C55E`、青緑 `#14B8A6`、水色 `#06B6D4`、青 `#3B82F6`、藍 `#6366F1`、紫 `#A855F7`、ピンク `#EC4899`、茶 `#92400E`。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  $ref: "#/components/schemas/TaskName"
+      responses:
+        "201":
+          description: 追加したタスク
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/tasks/{taskId}:
+    patch:
+      tags: [tasks]
+      operationId: updateTask
+      summary: タスクの名前・色・アーカイブを変える
+      description: 変えたい項目だけを送る。送らなかった項目は変わらない。
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                name:
+                  $ref: "#/components/schemas/TaskName"
+                color:
+                  $ref: "#/components/schemas/Color"
+                archived:
+                  type: boolean
+                  description: "`true` でアーカイブし、`false` でアーカイブを解除する。"
+      responses:
+        "200":
+          description: 変更後のタスク
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/pomodoros:
+    post:
+      tags: [pomodoros]
+      operationId: createPomodoro
+      summary: 完了したポモドーロを 1 回分記録する
+      description: |
+        作業フェーズを最後まで終えたときに、ブラウザが 1 回だけ呼ぶ。スキップやリセットで打ち切った作業フェーズでは呼ばない。
+        `segments` は、そのフェーズでタイマーが動いていた時間帯。途中で一時停止すると、時間帯が複数になる。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [segments]
+              properties:
+                segments:
+                  type: array
+                  minItems: 1
+                  description: 開始時刻の古い順。時間帯どうしは重ならない。
+                  items:
+                    $ref: "#/components/schemas/Segment"
+      responses:
+        "201":
+          description: 記録したポモドーロ
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/history:
+    get:
+      tags: [history]
+      operationId: getHistory
+      summary: 期間の集計とグラフのデータを取る
+      description: |
+        `date` を含む期間を、`view` の単位で返す。
+        - `day`: その日。棒は 1 時間ごとの 24 本。
+        - `week`: その日を含む月曜〜日曜。棒は 1 日ごとの 7 本。
+        - `month`: その日を含む月。棒は 1 日ごと。
+        - `year`: その日を含む年。棒は 1 か月ごとの 12 本。
+      parameters:
+        - name: view
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [day, week, month, year]
+        - name: date
+          in: query
+          required: true
+          description: 基準の日付（JST）。
+          schema:
+            type: string
+            format: date
+            example: "2026-10-11"
+      responses:
+        "200":
+          description: 期間の集計
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/History"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/settings:
+    get:
+      tags: [settings]
+      operationId: getSettings
+      summary: 設定を取る
+      responses:
+        "200":
+          description: 設定
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [settings]
+      operationId: updateSettings
+      summary: 設定を変える
+      description: 変えたい項目だけを送る。送らなかった項目は変わらない。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                workMinutes:
+                  $ref: "#/components/schemas/WorkMinutes"
+                shortBreakMinutes:
+                  $ref: "#/components/schemas/BreakMinutes"
+                longBreakMinutes:
+                  $ref: "#/components/schemas/BreakMinutes"
+                cycles:
+                  $ref: "#/components/schemas/Cycles"
+                autoStartBreak:
+                  type: boolean
+                autoStartWork:
+                  type: boolean
+      responses:
+        "200":
+          description: 変更後の設定
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+      description: Better Auth のログインで発行されるセッションの Cookie。
+
+  responses:
+    Unauthorized:
+      description: ログインしていない。`code` は `UNAUTHORIZED`。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: 対象が見つからない。`code` は `TASK_NOT_FOUND`。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnprocessableEntity:
+      description: |
+        入力が正しくない。`code` は、理由に応じて次のどれか。複数の理由があるときは、この並び順で先のものを返す。
+        - `TASK_NAME_REQUIRED`: タスクの名前が空（前後の空白を除いて 0 文字）。
+        - `TASK_NAME_TOO_LONG`: タスクの名前が 50 文字を超えている。
+        - `TASK_COLOR_INVALID`: 色が `#RRGGBB` の形でない。
+        - `INVALID_REQUEST`: 上のどれでもない理由（クエリやボディの形が正しくない、値が範囲の外、存在しないタスクの ID、など）。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [UNAUTHORIZED, TASK_NOT_FOUND, TASK_NAME_REQUIRED, TASK_NAME_TOO_LONG, TASK_COLOR_INVALID, INVALID_REQUEST]
+          description: 失敗した理由を表すエラーコード。画面は、これに対応するメッセージを表示する。
+        message:
+          type: string
+          description: 開発者向けの説明。画面には表示しない。
+
+    TaskName:
+      type: string
+      minLength: 1
+      maxLength: 50
+      description: タスクの名前。前後の空白を除いた長さが 1〜50 文字。
+
+    Color:
+      type: string
+      pattern: "^#[0-9A-Fa-f]{6}$"
+      description: "`#RRGGBB` の形の色。"
+      example: "#3B82F6"
+
+    Task:
+      type: object
+      required: [id, name, color, archived, createdAt]
+      properties:
+        id:
+          type: string
+        name:
+          $ref: "#/components/schemas/TaskName"
+        color:
+          $ref: "#/components/schemas/Color"
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Segment:
+      type: object
+      required: [startedAt, endedAt, taskId]
+      properties:
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+          description: "`startedAt` よりあとの時刻。"
+        taskId:
+          type: [string, "null"]
+          description: その時間帯に選んでいたタスク。「タスクなし」のときは `null`。
+
+    History:
+      type: object
+      required: [view, start, end, pomodoroCount, totalSeconds, buckets, tasks]
+      properties:
+        view:
+          type: string
+          enum: [day, week, month, year]
+        start:
+          type: string
+          format: date
+          description: 期間の最初の日（JST）。
+        end:
+          type: string
+          format: date
+          description: 期間の最後の日（JST）。`day` のときは `start` と同じ。
+        pomodoroCount:
+          type: integer
+          minimum: 0
+          description: 期間内に完了したポモドーロの数。
+        totalSeconds:
+          type: integer
+          minimum: 0
+          description: 期間内の合計作業時間（秒）。
+        buckets:
+          type: array
+          description: グラフの棒。時刻の古い順に、作業のない棒も含めてすべて返す。
+          items:
+            type: object
+            required: [key, tasks]
+            properties:
+              key:
+                type: string
+                description: "棒が表す範囲。`day` は時（`00`〜`23`）、`week` と `month` は日付（`2026-10-11`）、`year` は月（`2026-10`）。"
+              tasks:
+                type: array
+                description: その棒の中の、タスクごとの作業時間。作業のないタスクは含めない。
+                items:
+                  type: object
+                  required: [taskId, seconds]
+                  properties:
+                    taskId:
+                      type: [string, "null"]
+                    seconds:
+                      type: integer
+                      minimum: 1
+        tasks:
+          type: array
+          description: 期間内に作業のあったタスクごとの合計。タスクの作成日時の古い順で、「タスクなし」は最後。
+          items:
+            type: object
+            required: [taskId, name, color, seconds]
+            properties:
+              taskId:
+                type: [string, "null"]
+                description: 「タスクなし」のときは `null`。
+              name:
+                type: [string, "null"]
+                description: 「タスクなし」のときは `null`。アーカイブ済みのタスクも名前を返す。
+              color:
+                oneOf:
+                  - $ref: "#/components/schemas/Color"
+                  - type: "null"
+                description: 「タスクなし」のときは `null`。
+              seconds:
+                type: integer
+                minimum: 1
+
+    WorkMinutes:
+      type: integer
+      minimum: 5
+      maximum: 120
+      multipleOf: 5
+      description: 作業時間（分）。
+
+    BreakMinutes:
+      type: integer
+      minimum: 5
+      maximum: 60
+      multipleOf: 5
+      description: 休憩時間（分）。
+
+    Cycles:
+      type: integer
+      minimum: 1
+      maximum: 10
+      description: 長休憩までに行う作業フェーズの回数。
+
+    Settings:
+      type: object
+      required: [workMinutes, shortBreakMinutes, longBreakMinutes, cycles, autoStartBreak, autoStartWork]
+      properties:
+        workMinutes:
+          $ref: "#/components/schemas/WorkMinutes"
+        shortBreakMinutes:
+          $ref: "#/components/schemas/BreakMinutes"
+        longBreakMinutes:
+          $ref: "#/components/schemas/BreakMinutes"
+        cycles:
+          $ref: "#/components/schemas/Cycles"
+        autoStartBreak:
+          type: boolean
+          description: 休憩を自動スタートする。
+        autoStartWork:
+          type: boolean
+          description: 作業を自動スタートする。
