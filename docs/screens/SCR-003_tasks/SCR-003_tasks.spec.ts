@@ -50,7 +50,7 @@
  *   追加したタスクの作成日時は、「今」から 1 分以内であることを確かめる
  * - 「前後の空白」は、半角の空白と全角の空白の両方とする
  * - タスクの要素が形式に合うかどうかは、storage.md の「値の構造」の決まりのとおり
- *   （必須のフィールドと型、color が #RRGGBB の形、createdAt が日時として読めること。名前の文字数や、id が UUID の形かは確かめない）
+ *   （必須のフィールドと型、name が前後の空白を除いて 1 文字以上、color が #RRGGBB の形、createdAt が日時として読めること。名前が 50 文字以内かや、id が UUID の形かは確かめない）
  * - タブを切り替えたときの読み上げでの通知は、しない（設計書のタブの備考）。通知しないことは、自動では確かめられないので、ケースにしていない
  * - 特定の属性（aria-*、data-*）やライブラリ固有の DOM の形は前提にしない
  * - 共通ヘッダーの中身は、ここでは確かめない（ヘッダーの設計書から別に確かめる）。別の画面へ移る操作には、共通ヘッダーの「設定」のリンクを使う
@@ -596,7 +596,7 @@ test.describe('SCR-003 タスク管理', () => {
       await expect(ui(page).rowNames).toHaveCount(0)
     })
 
-    /** 形式に合わない要素（必須のフィールドがない、型が違う、color が #RRGGBB の形でない、createdAt が日時として読めない） */
+    /** 形式に合わない要素（必須のフィールドがない、型が違う、name が空か空白だけ、color が #RRGGBB の形でない、createdAt が日時として読めない） */
     const broken = task(8, { name: '形式に合わないタスク' })
     const without = (field: keyof Task) => {
       const { [field]: _removed, ...rest } = broken
@@ -613,6 +613,9 @@ test.describe('SCR-003 タスク管理', () => {
       { name: 'archived が文字列の "false" の要素', value: { ...broken, archived: 'false' } },
       { name: 'createdAt が数値の要素', value: { ...broken, createdAt: 1790000000000 } },
       { name: 'archived が数値の 0 の要素', value: { ...broken, archived: 0 } },
+      { name: 'name が空の要素', value: { ...broken, name: '' } },
+      { name: 'name が半角の空白だけの要素', value: { ...broken, name: '   ' } },
+      { name: 'name が全角の空白だけの要素', value: { ...broken, name: '　　' } },
       { name: 'color が #RGB の 3 桁の要素', value: { ...broken, color: '#F00' } },
       { name: 'color が # のない 6 桁の要素', value: { ...broken, color: 'EF4444' } },
       { name: 'color が 16 進数でない 6 桁（#GGGGGG）の要素', value: { ...broken, color: '#GGGGGG' } },
@@ -631,8 +634,7 @@ test.describe('SCR-003 タスク管理', () => {
 
     /** 内容の範囲は確かめないので、形式に合うものとして使う要素 */
     const usableCases: { name: string; value: Task }[] = [
-      { name: 'name が空の要素', value: task(8, { name: '' }) },
-      { name: 'name が空白だけの要素', value: task(8, { name: '   ' }) },
+      { name: 'name が 1 文字の要素', value: task(8, { name: 'あ' }) },
       { name: 'name の前後に空白がある要素', value: task(8, { name: ' 前後に空白 ' }) },
       { name: 'name が 51 文字の要素', value: task(8, { name: 'あ'.repeat(51) }) },
       { name: 'id が UUID の形でない要素', value: task(8, { id: 'task-8', name: 'UUID でないタスク' }) },
@@ -1531,8 +1533,8 @@ test.describe('SCR-003 タスク管理', () => {
   })
 
   test.describe('保存するときの、形式に合わない要素の扱い', () => {
-    /** 形式に合わない要素（name が数値、color が 3 桁）と、余分なフィールドを持つ要素が混ざっている */
-    const stored = [SPEC, { ...DESIGN, name: 123 }, REVIEW, { ...MAIL, color: '#F00' }, null]
+    /** 形式に合わない要素（name が数値・空・空白だけ、color が 3 桁、null）が混ざっている */
+    const stored = [SPEC, { ...DESIGN, name: 123 }, { ...SURVEY, name: '' }, REVIEW, { ...MAIL, color: '#F00' }, task(9, { name: ' 　' }), null]
     const readable = [SPEC, REVIEW]
 
     const saveCases: { action: string; query?: string; act: (page: Page, u: Ui) => Promise<unknown>; want: unknown[] }[] = [
@@ -1687,6 +1689,8 @@ test.describe('SCR-003 タスク管理', () => {
       await ui(page).newTask.fill('書きかけ')
       await ui(page).settingsLink.click()
       await expect(page).toHaveURL((url) => url.pathname === SETTINGS_PATH)
+      // URL が変わったあと、画面が切り替わるのを待ってから戻る
+      await expect(page.getByRole('heading', { name: '設定', exact: true })).toBeVisible()
       await page.goBack()
       await expectRows(page, names(ACTIVE))
       await expect(ui(page).newTask).toHaveValue('')
@@ -1698,6 +1702,8 @@ test.describe('SCR-003 タスク管理', () => {
       await expect(ui(page).error(NAME_TOO_LONG)).toBeVisible()
       await ui(page).settingsLink.click()
       await expect(page).toHaveURL((url) => url.pathname === SETTINGS_PATH)
+      // URL が変わったあと、画面が切り替わるのを待ってから戻る
+      await expect(page.getByRole('heading', { name: '設定', exact: true })).toBeVisible()
       await page.goBack()
       await expectRows(page, names(ACTIVE))
     })
@@ -1749,6 +1755,8 @@ test.describe('SCR-003 タスク管理', () => {
       await expectArchivedTab(page)
       await ui(page).settingsLink.click()
       await expect(page).toHaveURL((url) => url.pathname === SETTINGS_PATH)
+      // URL が変わったあと、画面が切り替わるのを待ってから戻る
+      await expect(page.getByRole('heading', { name: '設定', exact: true })).toBeVisible()
       await page.goBack()
       await expectArchivedQuery(page, 'true')
       await expectArchivedTab(page)

@@ -207,11 +207,24 @@ const buttons: ButtonItem[] = [
 /** 「作業するタスク」が select 要素かどうか */
 const isSelectElement = (task: Locator) => task.evaluate((el) => el.tagName === 'SELECT')
 
+/** 止めている時計を少し進めて、選択欄の開閉を終わらせ、時刻を元に戻す（時計を止めたままだと、選択欄が開ききらない） */
+async function settleTaskSelect(page: Page) {
+  const now = await page.evaluate(() => Date.now())
+  await page.clock.runFor(500)
+  await page.clock.setSystemTime(now)
+}
+
+/** 「作業するタスク」を押して、選択肢を開く */
+async function openTaskOptions(page: Page) {
+  await ui(page).task.click()
+  await settleTaskSelect(page)
+}
+
 /** 「作業するタスク」の選択肢（select 要素でなければ、押して開く） */
 async function taskOptions(page: Page): Promise<Locator> {
   const { task } = ui(page)
   if (await isSelectElement(task)) return task.locator('option')
-  await task.click()
+  await openTaskOptions(page)
   return page.getByRole('option')
 }
 
@@ -222,8 +235,9 @@ async function chooseTask(page: Page, name: string) {
     await task.selectOption({ label: name })
     return
   }
-  await task.click()
+  await openTaskOptions(page)
   await page.getByRole('option', { name, exact: true }).click()
+  await settleTaskSelect(page)
 }
 
 /** 「作業するタスク」で選んでいる値の文言が、name になるのを待つ */

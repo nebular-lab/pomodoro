@@ -588,9 +588,16 @@ test.describe('HDR-001 共通ヘッダー', () => {
     const invalid: { label: string; timer: unknown }[] = [
       { label: 'オブジェクトでない（JSON の配列）', timer: [] },
       { label: 'オブジェクトでない（JSON の null）', timer: null },
-      ...(['phase', 'cycle', 'status', 'phaseSeconds', 'endsAt', 'remainingSeconds', 'taskId'] as const).map(
-        (field) => ({ label: `${field} がない`, timer: without(BASE, field) }),
-      ),
+      // どの動作でも使う項目が欠けている
+      ...(['phase', 'cycle', 'status', 'taskId'] as const).map((field) => ({
+        label: `${field} の項目がない`,
+        timer: without(BASE, field),
+      })),
+      // その動作で使う項目が欠けている
+      { label: '動作中で、endsAt の項目がない', timer: without(RUNNING, 'endsAt') },
+      { label: '動作中で、phaseSeconds の項目がない', timer: without(RUNNING, 'phaseSeconds') },
+      { label: '一時停止中で、remainingSeconds の項目がない', timer: without(PAUSED, 'remainingSeconds') },
+      { label: '一時停止中で、phaseSeconds の項目がない', timer: without(PAUSED, 'phaseSeconds') },
       { label: 'phase が、3 つのどれでもない（"rest"）', timer: { ...BASE, phase: 'rest' } },
       { label: 'cycle の型が違う（文字列の "2"）', timer: { ...BASE, cycle: '2' } },
       { label: 'status が、3 つのどれでもない（"stopped"）', timer: { ...BASE, status: 'stopped' } },
@@ -632,6 +639,29 @@ test.describe('HDR-001 共通ヘッダー', () => {
       { label: '一時停止中なのに終了予定時刻（過ぎた時刻）がある', timer: { ...PAUSED, endsAt: at(-HOUR) } },
       { label: '動作中なのに残り秒数がある', timer: { ...RUNNING, remainingSeconds: 10 * 60 } },
     ]
+
+    // その動作で使わない値の、項目そのものが欠けている
+    const unused: { label: string; timer: TimerState; field: 'phaseSeconds' | 'endsAt' | 'remainingSeconds' }[] = [
+      { label: '開始前で、phaseSeconds の項目がない', timer: BASE, field: 'phaseSeconds' },
+      { label: '開始前で、endsAt の項目がない', timer: BASE, field: 'endsAt' },
+      { label: '開始前で、remainingSeconds の項目がない', timer: BASE, field: 'remainingSeconds' },
+      { label: '動作中で、remainingSeconds の項目がない', timer: RUNNING, field: 'remainingSeconds' },
+      { label: '一時停止中で、endsAt の項目がない', timer: PAUSED, field: 'endsAt' },
+    ]
+
+    for (const c of unused) {
+      test(`[初期表示 / タイマーの状態 形式に合う] ${c.label}状態は、形式に合うものとして、そのまま使い、最初の状態に戻さない`, async ({ page }) => {
+        await open(page, { timer: without(c.timer, c.field) })
+        const title = (remaining: string) => (c.timer.status === 'running' ? `${remaining} ${HOST.title}` : HOST.title)
+        // 欠けている項目は、保存し直していなくても、null で保存し直していても、どちらでもよい
+        const stored = async () => ({ [c.field]: null, ...(await read<Partial<TimerState>>(page, STG.timer)) })
+        await expect(page).toHaveTitle(title('20:00'))
+        await expect.poll(stored).toEqual(c.timer)
+        await page.clock.runFor(SECOND)
+        await expect(page).toHaveTitle(title('19:59'))
+        await expect.poll(stored).toEqual(c.timer)
+      })
+    }
 
     for (const c of valid) {
       test(`[初期表示 / タイマーの状態 形式に合う] ${c.label}の状態は、そのまま使い、書き換えない`, async ({ page }) => {

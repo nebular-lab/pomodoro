@@ -36,7 +36,7 @@
  *   ヘッダーが作業記録を足したときに、この画面の表示を作り直すことも、ヘッダーのテストの側
  * - 時刻は Playwright の時計で固定する。「今」は、日本時間の 2026-10-11 10:00（日曜日）。「今」を変えるケースは、テスト名に書いている
  * - タスクと作業記録の要素は、必須のフィールドと型だけを確かめる（storage.md の「値の構造」の前書き）。
- *   名前の文字数と ID の形は確かめない。color は #RRGGBB の形（大文字と小文字は区別しない）、日時は日時として読めること、seconds は 0 より大きい数値
+ *   name は前後の空白を除いて 1 文字以上（51 文字以上かどうかは確かめない）。ID の形は確かめない。color は #RRGGBB の形（大文字と小文字は区別しない）、日時は日時として読めること、seconds は 0 より大きい数値
  * - 「今日」は、表示を作るときの日付。画面を開いたまま日付が変わるケースは、時計を進めて確かめる
  * - `view`・`date` 以外のクエリパラメータと、同じパラメータが 2 つ付いたときの扱いは、決めないことなので、ケースにしていない
  */
@@ -827,6 +827,8 @@ test.describe('SCR-004 履歴', () => {
     const badTasks: { name: string; value: unknown }[] = [
       { name: 'name がない要素', value: { id: designTask.id, color: designTask.color, archived: false, createdAt: designTask.createdAt } },
       { name: 'name が数値の要素', value: { ...designTask, name: 1 } },
+      { name: 'name が空文字の要素', value: { ...designTask, name: '' } },
+      { name: 'name が空白だけの要素', value: { ...designTask, name: '   ' } },
       { name: 'color がない要素', value: { id: designTask.id, name: designTask.name, archived: false, createdAt: designTask.createdAt } },
       { name: 'color が #RRGGBB の形でない（red）要素', value: { ...designTask, color: 'red' } },
       { name: 'color が #RRGGBB の形でない（桁の足りない #EF444）要素', value: { ...designTask, color: '#EF444' } },
@@ -853,11 +855,11 @@ test.describe('SCR-004 履歴', () => {
       })
     }
 
-    // 内容の範囲（名前の文字数、ID の形）は確かめないので、形式に合うものとして使う
+    // 名前が 51 文字以上か、ID が UUID の形か、は確かめないので、形式に合うものとして使う。
+    // 前後に空白のある名前は、行に表示する文言（空白を除くかどうか）が決まっていないので、行の名前は確かめない
     const goodTasks: { name: string; value: { id: string; name: string }; shown: boolean }[] = [
       { name: 'name が 51 文字の要素', value: { ...designTask, name: 'あ'.repeat(51) }, shown: true },
-      { name: 'name が空文字の要素', value: { ...designTask, name: '' }, shown: false },
-      { name: 'name が空白だけの要素', value: { ...designTask, name: '   ' }, shown: false },
+      { name: 'name が、前後の空白を除くと 1 文字の要素', value: { ...designTask, name: ' あ ' }, shown: false },
       { name: 'id が UUID の形でない（abc）要素', value: { ...designTask, id: 'abc' }, shown: true },
       { name: 'color の英字が小文字（#3b82f6）の要素', value: { ...designTask, color: '#3b82f6' }, shown: true },
       { name: 'createdAt が UTC の書き方でない（+09:00 付き）要素', value: { ...designTask, createdAt: '2026-09-02T09:00:00+09:00' }, shown: true },
