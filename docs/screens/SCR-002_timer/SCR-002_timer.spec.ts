@@ -182,6 +182,7 @@ const ui = (page: Page) => ({
   task: page.getByRole('combobox', { name: '作業するタスク', exact: true }), // No.8
   pause: page.getByRole('button', { name: '一時停止', exact: true }), // No.9
   resume: page.getByRole('button', { name: '再開', exact: true }), // No.10
+  today: page.getByText(/^今日 [\d,]+ ポモドーロ$/), // No.11
 })
 
 type Ui = ReturnType<typeof ui>
@@ -606,6 +607,119 @@ test.describe('SCR-002 タイマー', () => {
     test('[開始 備考] スキップの左に表示する', async ({ page }) => {
       await open(page, withTimer(timer('work', 'idle')))
       expect(await left(ui(page).start)).toBeLessThan(await left(ui(page).skip))
+    })
+  })
+
+  test.describe('今日のポモドーロ数', () => {
+    /** 今日（日本時間の 2026-10-11）の作業記録 */
+    const todayRecord = (taskId: string | null = null): WorkRecord => ({
+      completedAt: '2026-10-11T00:30:00.000Z',
+      taskId,
+      seconds: 1500,
+    })
+    const todayText = (count: string) => `今日 ${count} ポモドーロ`
+
+    const states: { name: string; state: TimerState }[] = [
+      { name: '作業の開始前', state: timer('work', 'idle') },
+      { name: '作業の動作中', state: timer('work', 'running') },
+      { name: '作業の一時停止中', state: timer('work', 'paused') },
+      { name: '小休憩の動作中', state: timer('shortBreak', 'running') },
+      { name: '長休憩の開始前', state: timer('longBreak', 'idle') },
+    ]
+    for (const c of states) {
+      test(`[今日のポモドーロ数 表示条件] ${c.name}のとき、表示する`, async ({ page }) => {
+        await open(page, withTimer(c.state, { records: [todayRecord(), todayRecord()] }))
+        await expect(ui(page).today).toHaveText(todayText('2'))
+      })
+    }
+
+    test('[今日のポモドーロ数 表示内容 / タイマーの状態が変わる] 作業記録に値がないとき、「今日 0 ポモドーロ」と表示する', async ({ page }) => {
+      await open(page, withTimer(timer('work', 'idle')))
+      await expect(ui(page).today).toHaveText(todayText('0'))
+    })
+
+    const unreadable: { name: string; raw: string }[] = [
+      { name: '作業記録の値が JSON として読めない', raw: '{' },
+      { name: '作業記録が配列でない', raw: JSON.stringify({ completedAt: '2026-10-11T00:30:00.000Z', taskId: null, seconds: 1500 }) },
+      { name: '作業記録が 0 件の', raw: '[]' },
+    ]
+    for (const c of unreadable) {
+      test(`[今日のポモドーロ数 表示内容 / タイマーの状態が変わる] ${c.name}とき、「今日 0 ポモドーロ」と表示する`, async ({ page }) => {
+        await open(page, withTimer(timer('work', 'idle'), { records: [todayRecord()] }))
+        await expect(ui(page).today).toHaveText(todayText('1'))
+        await page.evaluate(([k, v]) => localStorage.setItem(k, v), [STG.records, c.raw] as const)
+        await page.reload()
+        await expect(ui(page).today).toHaveText(todayText('0'))
+      })
+    }
+
+    const boundaries: { name: string; completedAt: string; count: string }[] = [
+      { name: '今日の 0:00:00（日本時間）', completedAt: '2026-10-10T15:00:00.000Z', count: '1' },
+      { name: '今日の 23:59:59.999（日本時間）', completedAt: '2026-10-11T14:59:59.999Z', count: '1' },
+      { name: '前の日の 23:59:59.999（日本時間）', completedAt: '2026-10-10T14:59:59.999Z', count: '0' },
+      { name: '次の日の 0:00:00（日本時間）', completedAt: '2026-10-11T15:00:00.000Z', count: '0' },
+    ]
+    for (const c of boundaries) {
+      test(`[今日のポモドーロ数 表示内容 / 今日に入る作業記録] 完了した時刻が${c.name}の作業記録は、${c.count} 件として数える`, async ({ page }) => {
+        await open(page, withTimer(timer('work', 'idle'), { records: [{ completedAt: c.completedAt, taskId: null, seconds: 1500 }] }))
+        await expect(ui(page).today).toHaveText(todayText(c.count))
+      })
+    }
+
+    test('[今日のポモドーロ数 表示内容 / タスクによらない] 「タスクなし」、使用中のタスク、アーカイブしたタスク、見つからないタスクの作業記録を、すべて数える', async ({ page }) => {
+      const records = [todayRecord(null), todayRecord(T1.id), todayRecord(ARCHIVED.id), todayRecord('99999999-9999-4999-8999-999999999999')]
+      await open(page, withTimer(timer('work', 'idle'), { records }))
+      await expect(ui(page).today).toHaveText(todayText('4'))
+    })
+
+    test('[今日のポモドーロ数 表示内容 / 作業した時間によらない] 作業した時間の長さによらず、1 件を 1 と数える', async ({ page }) => {
+      const records = [{ ...todayRecord(), seconds: 300 }, { ...todayRecord(), seconds: 7200 }]
+      await open(page, withTimer(timer('work', 'idle'), { records }))
+      await expect(ui(page).today).toHaveText(todayText('2'))
+    })
+
+    test('[今日のポモドーロ数 表示内容 / 形式に合わない要素] 形式に合わない要素（completedAt が日時として読めない、seconds が文字列、必須のフィールドがない、オブジェクトでない）は、数えない', async ({ page }) => {
+      const records = [
+        todayRecord(),
+        { completedAt: 'きょう', taskId: null, seconds: 1500 },
+        { completedAt: '2026-10-11T00:30:00.000Z', taskId: null, seconds: '1500' },
+        { completedAt: '2026-10-11T00:30:00.000Z', seconds: 1500 },
+        'x',
+        null,
+      ]
+      await open(page, withTimer(timer('work', 'idle'), { records }))
+      await expect(ui(page).today).toHaveText(todayText('1'))
+    })
+
+    test('[今日のポモドーロ数 表示内容 / 桁の区切り] 1000 件のとき、「今日 1,000 ポモドーロ」と表示する', async ({ page }) => {
+      const records = Array.from({ length: 1000 }, () => todayRecord())
+      await open(page, withTimer(timer('work', 'idle'), { records }))
+      await expect(ui(page).today).toHaveText(todayText('1,000'))
+    })
+
+    test('[タイマーの状態が変わる / 今日のポモドーロ数] 作業フェーズが完了すると、数が 1 増える', async ({ page }) => {
+      await open(page, withTimer(timer('work', 'running', { remainingMs: 1000 }), { records: [todayRecord()] }))
+      await expect(ui(page).today).toHaveText(todayText('1'))
+      await page.clock.runFor(2000)
+      await expect(ui(page).today).toHaveText(todayText('2'))
+    })
+
+    test('[タイマーの状態が変わる / 今日のポモドーロ数] 休憩フェーズが完了しても、数は変わらない', async ({ page }) => {
+      await open(page, withTimer(timer('shortBreak', 'running', { remainingMs: 1000 }), { records: [todayRecord()] }))
+      await page.clock.runFor(2000)
+      await expect(ui(page).start).toBeVisible()
+      await expect(ui(page).today).toHaveText(todayText('1'))
+    })
+
+    test('[タイマーの状態が変わる / 今日のポモドーロ数] 作業フェーズをスキップしても、リセットしても、数は変わらない', async ({ page }) => {
+      await open(page, withTimer(timer('work', 'running'), { records: [todayRecord()] }))
+      await ui(page).reset.click()
+      await expect(ui(page).start).toBeVisible()
+      await expect(ui(page).today).toHaveText(todayText('1'))
+      await ui(page).start.click()
+      await ui(page).skip.click()
+      await expect(ui(page).start).toBeVisible()
+      await expect(ui(page).today).toHaveText(todayText('1'))
     })
   })
 

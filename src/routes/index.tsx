@@ -10,7 +10,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { readTasks } from "@/lib/storage";
+import { formatYmd, toJst } from "@/lib/date";
+import { readRecords, readTasks } from "@/lib/storage";
 import { formatRemaining, remainingSeconds } from "@/lib/timer";
 import { usePageTitle, useTimer } from "@/lib/timer-context";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ function TimerPage() {
 		settings,
 		timer,
 		now,
+		recordsVersion,
 		startTimer,
 		pauseTimer,
 		resumeTimer,
@@ -39,6 +41,17 @@ function TimerPage() {
 	// タイマーの状態が変わるたびに、タスクを読み直す
 	// biome-ignore lint/correctness/useExhaustiveDependencies: timer が変わったときに読み直す
 	const tasks = useMemo(() => readTasks(), [timer]);
+
+	// 今日（日本時間）に完了したポモドーロの数
+	const today = formatYmd(toJst(now));
+	// biome-ignore lint/correctness/useExhaustiveDependencies: タイマーの状態か作業記録が変わったときに数え直す
+	const todayCount = useMemo(
+		() =>
+			readRecords().filter(
+				(record) => formatYmd(toJst(Date.parse(record.completedAt))) === today,
+			).length,
+		[today, timer, recordsVersion],
+	);
 
 	const isWork = timer.phase === "work";
 	// 作業フェーズを開始してから終わるまでは、タスクを変えられない
@@ -96,54 +109,59 @@ function TimerPage() {
 					))}
 				</div>
 
-				<div className="flex items-center gap-4">
-					{timer.status !== "idle" && (
+				{/* 3 列にして、開始前（リセットがない）でも、まんなかのボタンを中央に置く */}
+				<div className="grid grid-cols-[3rem_auto_3rem] items-center gap-4">
+					{timer.status === "idle" ? (
+						<span />
+					) : (
 						<Button
 							variant="ghost"
-							size="icon"
+							size="icon-lg"
+							className="size-12"
 							aria-label="リセット"
 							onClick={resetTimer}
 						>
-							<RotateCcw />
+							<RotateCcw className="size-6" />
 						</Button>
 					)}
 					{timer.status === "idle" && (
 						<Button
 							size="icon-lg"
-							className="size-16 rounded-full"
+							className="size-20 rounded-full"
 							aria-label="開始"
 							onClick={startTimer}
 						>
-							<Play />
+							<Play className="size-8" />
 						</Button>
 					)}
 					{timer.status === "running" && (
 						<Button
 							size="icon-lg"
-							className="size-16 rounded-full"
+							className="size-20 rounded-full"
 							aria-label="一時停止"
 							onClick={pauseTimer}
 						>
-							<Pause />
+							<Pause className="size-8" />
 						</Button>
 					)}
 					{timer.status === "paused" && (
 						<Button
 							size="icon-lg"
-							className="size-16 rounded-full"
+							className="size-20 rounded-full"
 							aria-label="再開"
 							onClick={resumeTimer}
 						>
-							<Play />
+							<Play className="size-8" />
 						</Button>
 					)}
 					<Button
 						variant="ghost"
-						size="icon"
+						size="icon-lg"
+						className="size-12"
 						aria-label="スキップ"
 						onClick={skipPhase}
 					>
-						<SkipForward />
+						<SkipForward className="size-6" />
 					</Button>
 				</div>
 			</div>
@@ -180,6 +198,10 @@ function TimerPage() {
 					</Select>
 				</div>
 			</div>
+
+			<p className="text-sm text-muted-foreground">
+				今日 {todayCount.toLocaleString("en-US")} ポモドーロ
+			</p>
 		</main>
 	);
 }
