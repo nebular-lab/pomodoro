@@ -46,7 +46,7 @@
  * - 「ブラウザのタブが表に戻ったとき」は、document の visibilitychange（または window の focus）で受け取る
  * - ブラウザ通知は new Notification(...) で出し、許可は Notification.permission で見る。文言は、タイトルか本文のどちらかに入れる
  * - 保存する時刻（ISO 8601）は、同じ時刻を表していれば、書き方（ミリ秒の有無など）は問わない
- * - 音（チャイム）は、自動では確かめられないので、test.fixme() で名前だけ置く
+ * - 音（チャイム）は、自動では確かめられないので、手動テスト（HDR-001_app-header.manual-test.md）に書く
  */
 import { expect, type Page, test } from '@playwright/test'
 
@@ -1084,10 +1084,6 @@ test.describe('HDR-001 共通ヘッダー', () => {
         expect(await notifications(page)).toEqual([])
       })
     }
-
-    test.fixme('[フェーズ完了 / 音] 遅れが 60 秒以内のとき、短いチャイムを 1 回鳴らす（自動では確かめられない: 音が鳴ること）', async () => {})
-    test.fixme('[フェーズ完了 / 音] 完了したフェーズが作業でも休憩でも、同じ音を鳴らす（自動では確かめられない: 音が同じであること）', async () => {})
-    test.fixme('[フェーズ完了 / 音] 遅れが 60 秒を超えるとき、音を鳴らさない（自動では確かめられない: 音が鳴らないこと）', async () => {})
   })
 
   test.describe('フェーズが完了する: 自動スタート', () => {

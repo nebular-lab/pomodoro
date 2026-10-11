@@ -494,8 +494,6 @@ test.describe('SCR-003 タスク管理', () => {
       for (const t of ARCHIVED) await expect(ui(page).color(t.name)).toBeVisible()
     })
 
-    test.fixme('[タスクの色 表示内容 / 既定の色 表示内容] タスクの色のボタンは、その行のタスクの色の見本を、既定の色のボタンは、それぞれの色の見本を表示する（見本の色には、見た目のほかに目印がないため、自動では確かめられない。保存される色は [既定の色のボタン押下]、枠を開き直したときの色は [タスクの色のボタン押下] で確かめる）', async () => {})
-
     test('[「アーカイブ」ボタン 表示条件 / 読み上げ名] 「使用中」のタブを選んでいるとき、行ごとに、文言が「アーカイブ」で、「{タスクの名前} をアーカイブ」という名前のボタンを表示する', async ({ page }) => {
       await open(page)
       for (const t of ACTIVE) await expect(ui(page).archive(t.name)).toHaveText('アーカイブ')

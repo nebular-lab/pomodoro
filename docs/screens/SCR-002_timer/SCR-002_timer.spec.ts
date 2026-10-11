@@ -478,11 +478,6 @@ test.describe('SCR-002 タイマー', () => {
       })
     }
 
-    test.fixme('[サイクルの進み具合 表示内容] 設定のサイクルの数だけ、点を横に並べる（点に目印がなく、自動では数えられない）', async () => {})
-    test.fixme('[サイクルの進み具合 表示内容] 終えた回の点は塗る（塗りは見た目で、自動では確かめられない）', async () => {})
-    test.fixme('[サイクルの進み具合 表示内容] フェーズが作業で、動作中か一時停止中のとき、いまの回の点を横長にする。開始前や休憩のときは、横長にしない（点の形は見た目で、自動では確かめられない）', async () => {})
-    test.fixme('[サイクルの進み具合 表示内容] サイクルの回が設定のサイクルを超えるとき、横長にする点はない（点の形は見た目で、自動では確かめられない）', async () => {})
-
     // ---- 作業するタスク ----
 
     test('[作業するタスクの見出し 表示内容] 「作業するタスク」と表示する', async ({ page }) => {
@@ -573,10 +568,6 @@ test.describe('SCR-002 タイマー', () => {
       expect(await read<TimerState>(page, STG.timer)).toEqual(state)
     })
 
-    test.fixme('[作業するタスク 選択肢] 選択肢の 1 つ 1 つに、色の見本を添える。色はタスクの色、「タスクなし」は固定の灰色（色は見た目で、自動では確かめられない）', async () => {})
-    test.fixme('[作業するタスクの色 表示内容] 選んでいるタスクの色を表示する。「タスクなし」のときは固定の灰色。選択を変えたときも、選んだタスクの色にする（色は見た目で、自動では確かめられない）', async () => {})
-    test.fixme('[作業するタスクの色 読み上げ名] 飾りとして、読み上げない（文言も名前もない部品で、探す目印がない）', async () => {})
-
     // ---- ボタン ----
 
     for (const button of buttons) {
@@ -616,8 +607,6 @@ test.describe('SCR-002 タイマー', () => {
       await open(page, withTimer(timer('work', 'idle')))
       expect(await left(ui(page).start)).toBeLessThan(await left(ui(page).skip))
     })
-
-    test.fixme('[画面の背景] フェーズが休憩（小休憩・長休憩）のときは休憩の色、作業のときは作業の色にする（色は見た目で、自動では確かめられない。色そのものも、実装のときに決める）', async () => {})
   })
 
   test.describe('初期表示時の処理', () => {
@@ -920,8 +909,6 @@ test.describe('SCR-002 タイマー', () => {
         expect(await notificationsShown(page)).toBe(0)
       })
     }
-
-    test.fixme('[スキップ] 音を出さない（音の出し方は実装で決まり、鳴らなかったことを自動では確かめられない）', async () => {})
 
     test('[スキップ] 休憩から作業へ進むとき、選択中のタスクがアーカイブされていれば、「タスクなし」にして保存する（作業を自動スタートして、作業するタスクが非活性になるときも）', async ({ page }) => {
       await open(page, withTimer(timer('shortBreak', 'running', { taskId: T1.id }), { settings: { ...DEFAULTS, autoStartWork: true } }))
