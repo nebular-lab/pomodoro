@@ -5,6 +5,7 @@
 | ファイル | 内容 |
 | --- | --- |
 | [messages.md](messages.md) | メッセージ一覧。全画面で共通のメッセージ ID と文言 |
+| [storage.md](storage.md) | ブラウザストレージ一覧。ブラウザに保存する値の ID・キー・形式（このアプリのデータは、すべてここにある） |
 | [common-rules.md](common-rules.md) | 共通ルール。全画面で同じになる扱い（入力、react-hook-form と TanStack Query の設定など） |
 | [wireframe.css](wireframe.css) | ワイヤーフレームの共通スタイル |
 
