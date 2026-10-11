@@ -46,11 +46,10 @@ function SelectTrigger({
       {...props}
     >
       {children}
-      <SelectPrimitive.Icon
-        render={
-          <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
-        }
-      />
+      {/* 子を渡さないと、Base UI が既定の文字（▼）を入れ、選択欄の文字として読まれる */}
+      <SelectPrimitive.Icon>
+        <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
+      </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )
 }

@@ -1,29 +1,31 @@
-import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { AppHeader } from "@/components/app-header";
+import { TimerProvider } from "@/lib/timer-context";
 
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-
-import '../styles.css'
+import "../styles.css";
 
 export const Route = createRootRoute({
-  component: RootComponent,
-})
+	component: RootComponent,
+});
 
 function RootComponent() {
-  return (
-    <>
-      <Outlet />
-      <TanStackDevtools
-        config={{
-          position: 'bottom-right',
-        }}
-        plugins={[
-          {
-            name: 'TanStack Router',
-            render: <TanStackRouterDevtoolsPanel />,
-          },
-        ]}
-      />
-    </>
-  )
+	return (
+		<TimerProvider>
+			<AppHeader />
+			<Outlet />
+			<TanStackDevtools
+				config={{
+					position: "bottom-right",
+				}}
+				plugins={[
+					{
+						name: "TanStack Router",
+						render: <TanStackRouterDevtoolsPanel />,
+					},
+				]}
+			/>
+		</TimerProvider>
+	);
 }

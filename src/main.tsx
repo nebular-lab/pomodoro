@@ -4,6 +4,16 @@ import { routeTree } from './routeTree.gen'
 
 const router = createRouter({
   routeTree,
+  // クエリの値は、JSON として読まず、文字列のまま扱う（"true " を true と読まないため）
+  parseSearch: (searchStr) => Object.fromEntries(new URLSearchParams(searchStr)),
+  stringifySearch: (search) => {
+    const query = new URLSearchParams(
+      Object.entries(search).flatMap(([key, value]) =>
+        value == null ? [] : [[key, String(value)]],
+      ),
+    ).toString()
+    return query ? `?${query}` : ''
+  },
   defaultPreload: 'intent',
   scrollRestoration: true,
 })
