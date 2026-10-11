@@ -4,7 +4,6 @@
  * 設計書: docs/screens/HDR-001_app-header/HDR-001_app-header.md
  * ワイヤーフレーム: docs/screens/HDR-001_app-header/HDR-001_app-header.html
  * ブラウザストレージ一覧: docs/screens/storage.md
- * メッセージ一覧: docs/screens/messages.md
  * 共通ルール: docs/screens/common-rules.md
  *
  * 共通ヘッダーには URL がないので、このヘッダーを使う画面を開いて確かめる。
@@ -25,7 +24,6 @@
  *   [フェーズ完了 / 作業記録]              … アクション「フェーズが完了する」の、作業記録を足す手順
  *   [フェーズ完了 / 次のフェーズ]          … 同じく、次のフェーズへ進める表
  *   [フェーズ完了 / 選択中のタスク]        … 同じく、選択中のタスクを見直す手順
- *   [フェーズ完了 / 通知]                  … 同じく、音とブラウザ通知の手順
  *   [フェーズ完了 / 自動スタート]          … 同じく、次のフェーズを自動スタートする手順
  *   [フェーズ完了 / document.title]        … 同じく、document.title と画面の表示を合わせる手順
  *   [共通ルール アクセシビリティ]          … 共通ルールの「アクセシビリティ」のルール
@@ -44,7 +42,6 @@
  *   その瞬間は、名前に「終了予定時刻ちょうど」と書いたケースと、自動スタートしたフェーズの終了予定時刻・document.title を
  *   確かめるケースで見る。ほかのケースは、終了予定時刻の 1 秒あとまで進めてから、終了予定時刻の値を除いて確かめる
  * - 「ブラウザのタブが表に戻ったとき」は、document の visibilitychange（または window の focus）で受け取る
- * - ブラウザ通知は new Notification(...) で出し、許可は Notification.permission で見る。文言は、タイトルか本文のどちらかに入れる
  * - 保存する時刻（ISO 8601）は、同じ時刻を表していれば、書き方（ミリ秒の有無など）は問わない
  * - 音（チャイム）は、自動では確かめられないので、手動テスト（HDR-001_app-header.manual-test.md）に書く
  */
@@ -118,15 +115,6 @@ const INITIAL: TimerState = {
   remainingSeconds: null,
   taskId: null,
 }
-
-// ---- メッセージ（docs/screens/messages.md）-----------------------------------
-
-const MSG = {
-  /** MSG-008 */
-  workDone: '作業が終わりました。休憩しましょう',
-  /** MSG-009 */
-  breakDone: '休憩が終わりました。作業を始めましょう',
-} as const
 
 // ---- 固定するもの ------------------------------------------------------------
 
@@ -297,61 +285,18 @@ async function expectRecords(page: Page, want: WorkRecord[] | null) {
   await expect.poll(async () => norm(await read<WorkRecord[]>(page, STG.records))).toEqual(norm(want))
 }
 
-// ---- ブラウザ通知 ------------------------------------------------------------
-
-type Shown = { title: string; body: string | null }
-
-/** Notification を、出した通知を記録するだけのものに差し替える。permission は、通知の許可の状態 */
-async function stubNotification(page: Page, permission: NotificationPermission) {
-  await page.addInitScript((perm) => {
-    const shown: { title: string; body: string | null }[] = []
-    class FakeNotification extends EventTarget {
-      static permission = perm
-      static requestPermission() {
-        return Promise.resolve(perm)
-      }
-      constructor(title: string, options?: NotificationOptions) {
-        super()
-        shown.push({ title: String(title), body: options?.body ?? null })
-      }
-      close() {}
-    }
-    Object.defineProperty(window, '__notifications', { configurable: true, value: shown })
-    Object.defineProperty(window, 'Notification', { configurable: true, writable: true, value: FakeNotification })
-  }, permission)
-}
-
-/** いまのページで出したブラウザ通知 */
-const notifications = (page: Page) =>
-  page.evaluate(() => (window as unknown as { __notifications?: Shown[] }).__notifications ?? [])
-
-/** 出したブラウザ通知が、期待する文言の並びになるのを待つ（文言は、タイトルか本文のどちらか） */
-async function expectNotifications(page: Page, want: string[]) {
-  const known: string[] = Object.values(MSG)
-  await expect
-    .poll(async () =>
-      (await notifications(page)).map(
-        (n) => [n.title, n.body].find((text) => text !== null && known.includes(text)) ?? `${n.title} / ${n.body}`,
-      ),
-    )
-    .toEqual(want)
-}
-
 // ---- 画面を開く・時刻を進める ------------------------------------------------
 
 type OpenOptions = {
   /** 開く画面の URL（省略すると、設定） */
   path?: string
-  /** ブラウザ通知の許可の状態（省略すると、許可されている） */
-  permission?: NotificationPermission
 }
 
 /** 時計を現在の時刻に止め、ストレージに値を入れて、ヘッダーを置いた画面を開く */
-async function open(page: Page, values: Seed = {}, { path = HOST.path, permission = 'granted' }: OpenOptions = {}) {
+async function open(page: Page, values: Seed = {}, { path = HOST.path }: OpenOptions = {}) {
   // 少し前の時刻から始めて、現在の時刻ちょうどで止める（開いた画面の時計は、NOW で止まった状態から始まる）
   await page.clock.install({ time: NOW.getTime() - MINUTE })
   await page.clock.pauseAt(NOW)
-  await stubNotification(page, permission)
   await seed(page, values)
   await page.goto(path)
   await expect(ui(page).header).toBeVisible()
@@ -703,19 +648,6 @@ test.describe('HDR-001 共通ヘッダー', () => {
       await expectTimer(page, timer)
     })
 
-    test('[初期表示 / 動作中 / フェーズ完了 / 通知 境目] 遅れが 60 秒ちょうどのとき、ブラウザ通知を出す', async ({ page }) => {
-      await open(page, { timer: running('work', -60 * SECOND) })
-      await expectTimer(page, idle('shortBreak', 1))
-      await expectNotifications(page, [MSG.workDone])
-    })
-
-    test('[初期表示 / 動作中 / フェーズ完了 / 通知 境目] 遅れが 61 秒のとき、ブラウザ通知を出さない', async ({ page }) => {
-      await open(page, { timer: running('work', -61 * SECOND) })
-      // フェーズが完了したのを待ってから、通知が出ていないことを確かめる
-      await expectTimer(page, idle('shortBreak', 1))
-      expect(await notifications(page)).toEqual([])
-    })
-
     test('[初期表示 / 動作中 / フェーズ完了 / 自動スタート 境目] 遅れが 60 秒ちょうどで、休憩を自動スタートする設定のとき、小休憩を開始する（終了予定時刻は、現在の時刻 ＋ フェーズの長さ）', async ({ page }) => {
       await open(page, { settings: { ...CUSTOM, autoStartBreak: true }, timer: running('work', -60 * SECOND) })
       await expectTimer(page, started('shortBreak', 1, 10 * 60, 10 * MINUTE))
@@ -868,22 +800,20 @@ test.describe('HDR-001 共通ヘッダー', () => {
       await expect(page).toHaveTitle(`19:50 ${HOST.title}`)
     })
 
-    test('[1 秒たつ / タブが表に戻る / フェーズ完了 境目] タブが表に戻ったときに、終了予定時刻を 60 秒ちょうど過ぎていたら、フェーズを完了にし、通知を出して、自動スタートする', async ({ page }) => {
+    test('[1 秒たつ / タブが表に戻る / フェーズ完了 境目] タブが表に戻ったときに、終了予定時刻を 60 秒ちょうど過ぎていたら、フェーズを完了にし、自動スタートする', async ({ page }) => {
       await open(page, { settings: { ...DEFAULTS, autoStartBreak: true }, timer: endingSoon('work') })
       await expect(page).toHaveTitle(`00:01 ${HOST.title}`)
       await returnToFront(page, 61 * SECOND)
       await expectTimer(page, started('shortBreak', 1, 5 * 60, 61 * SECOND + 5 * MINUTE))
       await expectRecords(page, [{ completedAt: at(SECOND), taskId: null, seconds: 25 * 60 }])
-      await expectNotifications(page, [MSG.workDone])
     })
 
-    test('[1 秒たつ / タブが表に戻る / フェーズ完了 境目] タブが表に戻ったときに、終了予定時刻を 61 秒過ぎていたら、フェーズを完了にするが、通知を出さず、自動スタートもしない', async ({ page }) => {
+    test('[1 秒たつ / タブが表に戻る / フェーズ完了 境目] タブが表に戻ったときに、終了予定時刻を 61 秒過ぎていたら、フェーズを完了にするが、自動スタートはしない', async ({ page }) => {
       await open(page, { settings: { ...DEFAULTS, autoStartBreak: true }, timer: endingSoon('work') })
       await expect(page).toHaveTitle(`00:01 ${HOST.title}`)
       await returnToFront(page, 62 * SECOND)
       await expectTimer(page, idle('shortBreak', 1))
       await expectRecords(page, [{ completedAt: at(SECOND), taskId: null, seconds: 25 * 60 }])
-      expect(await notifications(page)).toEqual([])
     })
   })
 
@@ -1050,38 +980,6 @@ test.describe('HDR-001 共通ヘッダー', () => {
         await passEnd(page)
         await expectPhase(page, idle('shortBreak', 1, TASK.id))
         await expectRecords(page, [{ completedAt: at(SECOND), taskId: TASK.id, seconds: 25 * 60 }])
-      })
-    }
-  })
-
-  test.describe('フェーズが完了する: 音と通知', () => {
-    const messages: { name: string; timer: TimerState; next: TimerState; message: string }[] = [
-      { name: '作業', timer: endingSoon('work'), next: idle('shortBreak', 1), message: MSG.workDone },
-      { name: '小休憩', timer: endingSoon('shortBreak'), next: idle('work', 2), message: MSG.breakDone },
-      { name: '長休憩', timer: endingSoon('longBreak', { cycle: 4 }), next: idle('work', 1), message: MSG.breakDone },
-    ]
-
-    for (const c of messages) {
-      test(`[フェーズ完了 / 通知] ブラウザ通知が許可されていて、${c.name}が完了すると、「${c.message}」のブラウザ通知を 1 回出す`, async ({ page }) => {
-        await open(page, { timer: c.timer }, { permission: 'granted' })
-        await passEnd(page)
-        await expectPhase(page, c.next)
-        await expectNotifications(page, [c.message])
-      })
-    }
-
-    const notGranted: { label: string; permission: NotificationPermission }[] = [
-      { label: 'まだ許可も拒否もしていない', permission: 'default' },
-      { label: '拒否されている', permission: 'denied' },
-    ]
-
-    for (const c of notGranted) {
-      test(`[フェーズ完了 / 通知] ブラウザ通知が${c.label}ときは、フェーズが完了しても、ブラウザ通知を出さない`, async ({ page }) => {
-        await open(page, { timer: endingSoon('work') }, { permission: c.permission })
-        await passEnd(page)
-        // フェーズが完了したのを待ってから、通知が出ていないことを確かめる
-        await expectPhase(page, idle('shortBreak', 1))
-        expect(await notifications(page)).toEqual([])
       })
     }
   })

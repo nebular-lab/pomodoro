@@ -35,13 +35,11 @@
  * - 「残り時間」は、「MM:SS」の形の文言で探す（画面の中で、この形の文言は残り時間だけ）
  * - 「サイクルの進み具合」は、読み上げ名「サイクル {終えた回の数} / {設定の cycles}」で探す。点の数・塗り・横長は、目印がないので確かめない
  * - 特定の属性（data-* など）やライブラリ固有の DOM の形は前提にしない
- * - 共通ヘッダーの中身（リンク、作業記録の保存、音と通知、設定とタイマーの状態の読み方の細かな規則）は、ここでは確かめない
+ * - 共通ヘッダーの中身（リンク、作業記録の保存、音、設定とタイマーの状態の読み方の細かな規則）は、ここでは確かめない
  *   （ヘッダーの設計書から別に確かめる）。この画面の手順が参照している箇所は、この画面で見える結果とストレージの値を確かめる
  * - 時刻は Playwright の時計で止めてある（日本時間の 2026-10-11 10:00）。`runFor` で進めたときだけ進み、タイマーの 1 秒ごとの処理も、そのときだけ動く。
  *   終了予定時刻と残り秒数を、ずれなしで確かめるため。画面の部品は、時計が止まっていても操作できること（開く・選ぶ・押す）を前提にしている
  * - 終了予定時刻は、文字列の書き方（ミリ秒の桁など）ではなく、指している時刻で比べる
- * - ブラウザ通知の許可は、標準の `Notification.permission` で調べ、`Notification.requestPermission()` で求め、
- *   通知は `new Notification(...)` で出すことを前提に、差し替えて数える
  */
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
@@ -323,41 +321,6 @@ async function open(page: Page, values: Seed = withTimer()) {
   await page.goto(TIMER_PATH)
   await expect(ui(page).skip).toBeVisible()
 }
-
-// ---- ブラウザ通知の許可 ------------------------------------------------------
-
-/**
- * ブラウザ通知の許可の状態を permission にし、許可を求めた回数と、通知を出した回数を数えられるようにする。
- * 許可を求めても、利用者は答えない（答えを待つ実装だと、先へ進まない）
- */
-async function stubNotification(page: Page, permission: 'default' | 'granted' | 'denied') {
-  await page.addInitScript((p) => {
-    const counter = { count: 0, shown: 0 }
-    class NotificationStub {
-      constructor() {
-        counter.shown += 1
-      }
-      static get permission() {
-        return p
-      }
-      static requestPermission() {
-        counter.count += 1
-        return new Promise(() => {})
-      }
-      close() {}
-    }
-    Object.defineProperty(window, '__permissionRequests', { value: counter, configurable: true })
-    Object.defineProperty(window, 'Notification', { value: NotificationStub, configurable: true, writable: true })
-  }, permission)
-}
-
-/** ブラウザに通知の許可を求めた回数 */
-const permissionRequests = (page: Page) =>
-  page.evaluate(() => (window as unknown as { __permissionRequests: { count: number } }).__permissionRequests.count)
-
-/** ブラウザ通知を出した回数 */
-const notificationsShown = (page: Page) =>
-  page.evaluate(() => (window as unknown as { __permissionRequests: { shown: number } }).__permissionRequests.shown)
 
 /** 部品の左端の位置 */
 async function left(locator: Locator) {
@@ -863,30 +826,6 @@ test.describe('SCR-002 タイマー', () => {
       await expectTimer(page, timer('work', 'running', { remainingMs: 90_000 + 1500 * 1000 }))
     })
 
-    const permissions: { permission: 'default' | 'granted' | 'denied'; name: string; requests: number; result: string }[] = [
-      { permission: 'default', name: 'まだ許可も拒否もしていない', requests: 1, result: 'ブラウザに通知の許可を 1 回求める' },
-      { permission: 'granted', name: 'すでに許可している', requests: 0, result: '通知の許可を求めない' },
-      { permission: 'denied', name: 'すでに拒否している', requests: 0, result: '通知の許可を求めない' },
-    ]
-    for (const c of permissions) {
-      test(`[開始] ブラウザ通知を${c.name}とき、${c.result}`, async ({ page }) => {
-        await stubNotification(page, c.permission)
-        await open(page, withTimer(timer('work', 'idle')))
-        await ui(page).start.click()
-        await expect(ui(page).pause).toBeVisible()
-        await expect.poll(() => permissionRequests(page)).toBe(c.requests)
-      })
-    }
-
-    test('[開始] 通知の許可に利用者が答えるのを待たずに、タイマーを開始する', async ({ page }) => {
-      await stubNotification(page, 'default')
-      await open(page, withTimer(timer('work', 'idle')))
-      await ui(page).start.click()
-      await expectTimer(page, timer('work', 'running', { remainingMs: 1500 * 1000 }))
-      await page.clock.runFor(1000)
-      await expect(ui(page).remaining).toHaveText('24:59')
-    })
-
     test('[開始] 残り時間を表示し、1 秒ごとに減らす', async ({ page }) => {
       await open(page, withTimer(timer('work', 'idle')))
       await ui(page).start.click()
@@ -1003,26 +942,6 @@ test.describe('SCR-002 タイマー', () => {
       await expectTimer(page, timer('shortBreak', 'idle'))
       expect(await read<WorkRecord[]>(page, STG.records)).toEqual(records)
     })
-
-    test('[スキップ] ブラウザ通知をまだ許可も拒否もしていなくても、通知の許可を求めない（自動スタートするときも）', async ({ page }) => {
-      await stubNotification(page, 'default')
-      await open(page, withTimer(timer('work', 'idle'), { settings: { ...DEFAULTS, autoStartBreak: true } }))
-      await ui(page).skip.click()
-      await expectTimer(page, timer('shortBreak', 'running', { remainingMs: 300_000 }))
-      expect(await permissionRequests(page)).toBe(0)
-    })
-
-    for (const from of ['work', 'shortBreak'] as const) {
-      test(`[スキップ] ブラウザ通知を許可していても、${PHASE_NAME[from]}の動作中で押したときに、ブラウザ通知を出さない`, async ({ page }) => {
-        await stubNotification(page, 'granted')
-        await open(page, withTimer(timer(from, 'running')))
-        await ui(page).skip.click()
-        // 先に、次のフェーズへ進んだことを待つ
-        await expectTimer(page, timer(from === 'work' ? 'shortBreak' : 'work', 'idle', { cycle: from === 'work' ? 1 : 2 }))
-        await expect(ui(page).start).toBeVisible()
-        expect(await notificationsShown(page)).toBe(0)
-      })
-    }
 
     test('[スキップ] 休憩から作業へ進むとき、選択中のタスクがアーカイブされていれば、「タスクなし」にして保存する（作業を自動スタートして、作業するタスクが非活性になるときも）', async ({ page }) => {
       await open(page, withTimer(timer('shortBreak', 'running', { taskId: T1.id }), { settings: { ...DEFAULTS, autoStartWork: true } }))
@@ -1241,14 +1160,6 @@ test.describe('SCR-002 タイマー', () => {
       await open(page, withTimer(timer('work', 'paused'), { settings: CHANGED }))
       await ui(page).resume.click()
       await expectTimer(page, timer('work', 'running', { phaseSeconds: 1500, remainingMs: 1_492_000 }))
-    })
-
-    test('[再開] ブラウザ通知をまだ許可も拒否もしていなくても、通知の許可を求めない', async ({ page }) => {
-      await stubNotification(page, 'default')
-      await open(page, withTimer(timer('work', 'paused')))
-      await ui(page).resume.click()
-      await expectTimer(page, timer('work', 'running'))
-      expect(await permissionRequests(page)).toBe(0)
     })
 
     test('[再開] 残り時間を、止めたところから、1 秒ごとに減らす', async ({ page }) => {

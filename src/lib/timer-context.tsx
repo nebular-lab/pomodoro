@@ -8,12 +8,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { MSG } from "./messages";
-import {
-	playChime,
-	requestNotificationPermission,
-	showNotification,
-} from "./notify";
+import { playChime } from "./notify";
 import {
 	INITIAL_TIMER_STATE,
 	readRecords,
@@ -108,8 +103,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
 		let next = advance(state, currentSettings, readTasks());
 		if (onTime) {
-			playChime();
-			showNotification(state.phase === "work" ? MSG.workDone : MSG.breakDone);
+			playChime(state.phase === "work" ? "work" : "break");
 			if (shouldAutoStart(currentSettings, next.phase)) {
 				next = start(next, currentSettings, current);
 			}
@@ -158,7 +152,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 	}, [timer, settings, now, pageTitle]);
 
 	const startTimer = useCallback(() => {
-		requestNotificationPermission();
 		commit(start(timerRef.current, settingsRef.current, Date.now()));
 	}, [commit]);
 
