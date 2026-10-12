@@ -9,7 +9,8 @@
  *
  * テスト名の先頭の [...] は、設計書のどこから作ったケースかを、場面・項目名・条件で示す。
  *   [document.title]                              … 冒頭の表の document.title
- *   [Enter キーで動くボタン]                      … 冒頭の表の「Enter キーで動くボタン」
+ *   [「追加」ボタン type]                         … 画面項目「「追加」」の type（submit のボタンは、同じフォームの入力欄で Enter キーを押すと動く）
+ *   [タスク名 備考]                               … 画面項目「タスク名」の備考
  *   [閲覧権限 利用者]                             … 3. 閲覧権限 の行
  *   [クエリパラメータ archived 省略]              … 2. クエリパラメータ の archived を省略したとき
  *   [タスクのリスト 表示内容]                     … 画面項目「タスクのリスト」の表示内容
@@ -52,7 +53,8 @@
  * - タスクの要素が形式に合うかどうかは、storage.md の「値の構造」の決まりのとおり
  *   （必須のフィールドと型、name が前後の空白を除いて 1 文字以上、color が #RRGGBB の形、createdAt が日時として読めること。名前が 50 文字以内かや、id が UUID の形かは確かめない）
  * - タブを切り替えたときの読み上げでの通知は、しない（設計書のタブの備考）。通知しないことは、自動では確かめられないので、ケースにしていない
- * - 特定の属性（aria-*、data-*）やライブラリ固有の DOM の形は前提にしない
+ * - 設計書の画面項目に書かれた属性（type、placeholder、autocomplete）は、書かれた値になっていることを確かめる。
+ *   設計書に書かれていない属性（aria-*、data-*）やライブラリ固有の DOM の形は前提にしない
  * - 共通ヘッダーの中身は、ここでは確かめない（ヘッダーの設計書から別に確かめる）。別の画面へ移る操作には、共通ヘッダーの「設定」のリンクを使う
  */
 import { expect, type Locator, type Page, test } from '@playwright/test'
@@ -346,7 +348,7 @@ test.describe('SCR-003 タスク管理', () => {
       await expect(ui(page).heading).toBeVisible()
     })
 
-    test('[Enter キーで動くボタン] 新しいタスクにフォーカスがあるときに Enter キーを押すと、「追加」を押したときと同じく、タスクを足して保存する', async ({ page }) => {
+    test('[「追加」ボタン type / 備考] 新しいタスクにフォーカスがあるときに Enter キーを押すと、「追加」を押したときと同じく、タスクを足して保存する', async ({ page }) => {
       await open(page)
       await ui(page).newTask.fill('レビュー')
       await ui(page).newTask.press('Enter')
@@ -354,7 +356,7 @@ test.describe('SCR-003 タスク管理', () => {
       await expectActiveTab(page, [...names(ACTIVE), 'レビュー'])
     })
 
-    test('[Enter キーで動くボタン / タスク名] タスク名にフォーカスがあるときに Enter キーを押しても、何も起きない（フォーカスは外れず、保存も追加もしない。フォーカスを外すと保存する）', async ({ page }) => {
+    test('[タスク名 備考] タスク名にフォーカスがあるときに Enter キーを押しても、何も起きない（フォーカスは外れず、保存も追加もしない。フォーカスを外すと保存する）', async ({ page }) => {
       await open(page)
       const input = ui(page).name(SPEC.name)
       await input.fill('仕様書を直す')
@@ -419,14 +421,54 @@ test.describe('SCR-003 タスク管理', () => {
       await expect(ui(page).heading).toBeVisible()
     })
 
-    test('[新しいタスク 初期値 / 読み上げ名] 「新しいタスクの名前」という名前で見つかり、空で表示する', async ({ page }) => {
+    test('[新しいタスク value / 読み上げ名] 「新しいタスクの名前」という名前で見つかり、空で表示する', async ({ page }) => {
       await open(page)
       await expect(ui(page).newTask).toHaveValue('')
     })
 
-    test('[新しいタスク プレースホルダー] 「新しいタスクを追加」を表示する', async ({ page }) => {
+    test('[新しいタスク placeholder] 「新しいタスクを追加」を表示する', async ({ page }) => {
       await open(page)
       await expect(ui(page).newTask).toHaveAttribute('placeholder', '新しいタスクを追加')
+    })
+
+    test('[新しいタスク type] type は text', async ({ page }) => {
+      await open(page)
+      await expect(ui(page).newTask).toHaveAttribute('type', 'text')
+    })
+
+    test('[新しいタスク autocomplete] autocomplete は off', async ({ page }) => {
+      await open(page)
+      await expect(ui(page).newTask).toHaveAttribute('autocomplete', 'off')
+    })
+
+    test('[タスク名 type] どの行も、type は text', async ({ page }) => {
+      await open(page)
+      for (const t of ACTIVE) await expect(ui(page).name(t.name)).toHaveAttribute('type', 'text')
+    })
+
+    test('[タスク名 autocomplete] どの行も、autocomplete は off', async ({ page }) => {
+      await open(page)
+      for (const t of ACTIVE) await expect(ui(page).name(t.name)).toHaveAttribute('autocomplete', 'off')
+    })
+
+    test('[「追加」ボタン type] type は submit', async ({ page }) => {
+      await open(page)
+      await expect(ui(page).add).toHaveAttribute('type', 'submit')
+    })
+
+    test('[タスクの色 type] どの行も、type は button', async ({ page }) => {
+      await open(page)
+      for (const t of ACTIVE) await expect(ui(page).color(t.name)).toHaveAttribute('type', 'button')
+    })
+
+    test('[「アーカイブ」ボタン type] どの行も、type は button', async ({ page }) => {
+      await open(page)
+      for (const t of ACTIVE) await expect(ui(page).archive(t.name)).toHaveAttribute('type', 'button')
+    })
+
+    test('[「アーカイブを解除」ボタン type] どの行も、type は button', async ({ page }) => {
+      await open(page, { query: ARCHIVED_QUERY })
+      for (const t of ARCHIVED) await expect(ui(page).unarchive(t.name)).toHaveAttribute('type', 'button')
     })
 
     test('[「追加」ボタン 表示条件] タスクが 0 件でも表示する', async ({ page }) => {
@@ -479,7 +521,7 @@ test.describe('SCR-003 タスク管理', () => {
       await expect(ui(page).noData).toBeHidden()
     })
 
-    test('[タスク名 初期値 / 読み上げ名] 行ごとに、「{タスクの名前} の名前」という名前で見つかり、その行のタスクの名前を入れて表示する', async ({ page }) => {
+    test('[タスク名 value / 読み上げ名] 行ごとに、「{タスクの名前} の名前」という名前で見つかり、その行のタスクの名前を入れて表示する', async ({ page }) => {
       await open(page)
       for (const t of ACTIVE) await expect(ui(page).name(t.name)).toHaveValue(t.name)
     })
@@ -517,11 +559,12 @@ test.describe('SCR-003 タスク管理', () => {
     })
 
     for (const c of COLORS) {
-      test(`[${c.item} 表示条件 / 読み上げ名] 色を選ぶ枠を表示しているとき、「${c.name}」という名前のボタンを表示する`, async ({ page }) => {
+      test(`[${c.item} type / 表示条件 / 読み上げ名] 色を選ぶ枠を表示しているとき、「${c.name}」という名前の、type が button のボタンを表示する`, async ({ page }) => {
         await open(page)
         await ui(page).color(SPEC.name).click()
         await expect(ui(page).preset(c.name)).toBeVisible()
         await expect(ui(page).preset(c.name)).toBeEnabled()
+        await expect(ui(page).preset(c.name)).toHaveAttribute('type', 'button')
       })
     }
 
@@ -531,7 +574,7 @@ test.describe('SCR-003 タスク管理', () => {
       await expect(ui(page).otherColorLabel).toBeVisible()
     })
 
-    test('[その他の色 読み上げ名] 色を選ぶ枠を表示しているとき、「その他の色」という名前の、色の入力欄が見つかる', async ({ page }) => {
+    test('[その他の色 type / 読み上げ名] 色を選ぶ枠を表示しているとき、「その他の色」という名前の、type が color の入力欄が見つかる', async ({ page }) => {
       await open(page)
       await openPicker(page, SPEC.name)
       await expect(ui(page).otherColor).toHaveAttribute('type', 'color')
@@ -982,13 +1025,13 @@ test.describe('SCR-003 タスク管理', () => {
       await expect(ui(page).otherColor).toBeVisible()
     })
 
-    test('[タスクの色のボタン押下 / その他の色 初期値] 色を選ぶ枠を表示するとき、その他の色に、押した行のタスクの色を入れる', async ({ page }) => {
+    test('[タスクの色のボタン押下 / その他の色 value] 色を選ぶ枠を表示するとき、その他の色に、押した行のタスクの色を入れる', async ({ page }) => {
       await open(page)
       await openPicker(page, DESIGN.name)
       await expect(ui(page).otherColor).toHaveValue(colorValue(DESIGN.color))
     })
 
-    test('[タスクの色のボタン押下 / その他の色 初期値（既定の 12 色にない色）] タスクの色が既定の 12 色にない色でも、その他の色に、その色を入れる', async ({ page }) => {
+    test('[タスクの色のボタン押下 / その他の色 value（既定の 12 色にない色）] タスクの色が既定の 12 色にない色でも、その他の色に、その色を入れる', async ({ page }) => {
       const custom = task(1, { name: '特別な色のタスク', color: '#12ABEF' })
       await open(page, { tasks: [custom] })
       await openPicker(page, custom.name)

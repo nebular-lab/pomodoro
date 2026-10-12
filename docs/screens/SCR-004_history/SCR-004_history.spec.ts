@@ -11,7 +11,7 @@
  *   [閲覧権限 利用者]                             … 3. 閲覧権限 の行
  *   [クエリパラメータ view 受け取れない値]        … 2. クエリパラメータ の view に、受け取れない値が来たとき
  *   [期間 表示内容（週）]                         … 画面項目「期間」の表示内容を、「週」の単位で見たとき
- *   [「次の期間へ」 活性条件（月）]               … 画面項目「次の期間へ」の活性条件を、「月」の単位で見たとき
+ *   [「次の期間へ」 disabled（月）]               … 画面項目「次の期間へ」の disabled（非活性にする条件）を、「月」の単位で見たとき
  *   [初期表示 / 作業記録 形式に合わない要素]      … 5. 初期表示時の処理 で、作業記録（ストレージ）に形式に合わない要素があるとき
  *   [初期表示 / 期間に入る作業記録（日）]         … 5. 初期表示時の処理 の、期間に入る作業記録を集める手順
  *   [タブの切り替え / URL クエリの書き換え]       … アクション「タブの切り替え」の手順
@@ -26,6 +26,8 @@
  *   「月」「日」は、棒グラフの目盛りにも出るので、文言だけでは探さない。
  *   どのタブを選んでいるかは、役割 tab の「選択中」の状態（getByRole の selected）で確かめ、あわせて、期間の書式でも確かめる
  * - 「前の期間へ」「次の期間へ」は、役割 button と読み上げ名（「前の期間」「次の期間」）で探す
+ * - 設計書の画面項目に書かれた属性（「前の期間へ」「次の期間へ」の type）は、書かれた値になっていることを確かめる。
+ *   値が `-` の属性と、タグが「実装時に決める」の部品（タブ、棒グラフ）の属性は、ケースにしない。設計書に書かれていない属性は前提にしない
  * - 棒グラフはタグが「実装時に決める」なので、読み上げ名「作業時間のグラフ」で探す（役割は、img・figure のどちらでも、名前を付けただけの要素でもよい）。
  *   目盛りの文字は、棒グラフの要素の中にある
  * - タスクごとのリストの行は、役割 listitem で、時間（「◯ 分」「◯ 時間」）を含むものを探す。行の中のタスク名と時間は、文言で探す
@@ -476,26 +478,36 @@ test.describe('SCR-004 履歴', () => {
     })
 
     for (const v of views) {
-      test(`[「${v.tab}」のタブ 表示条件・活性条件] 作業記録が 0 件でも表示し、活性にする`, async ({ page }) => {
+      test(`[「${v.tab}」のタブ 表示条件・disabled] 作業記録が 0 件でも表示し、非活性にしない`, async ({ page }) => {
         await open(page)
         await expect(ui(page).tab(v.tab)).toBeVisible()
         await expect(ui(page).tab(v.tab)).toBeEnabled()
       })
 
-      test(`[「前の期間へ」 表示条件・活性条件（${v.tab}）] 「${v.tab}」の単位で、作業記録が 0 件でも、読み上げ名「前の期間」のボタンを表示し、活性にする`, async ({ page }) => {
+      test(`[「前の期間へ」 表示条件・disabled（${v.tab}）] 「${v.tab}」の単位で、作業記録が 0 件でも、読み上げ名「前の期間」のボタンを表示し、非活性にしない`, async ({ page }) => {
         await open(page, { query: q(queryOf(v.view, null)) })
         await expectPeriod(page, v.view, TODAY)
         await expect(ui(page).prev).toBeVisible()
         await expect(ui(page).prev).toBeEnabled()
       })
 
-      test(`[「次の期間へ」 活性条件（${v.tab}・date 省略）] 「${v.tab}」の単位で date を省略すると、今日を含む期間なので、読み上げ名「次の期間」のボタンを表示したまま、非活性にする`, async ({ page }) => {
+      test(`[「次の期間へ」 disabled（${v.tab}・date 省略）] 「${v.tab}」の単位で date を省略すると、今日を含む期間なので、読み上げ名「次の期間」のボタンを表示したまま、非活性にする`, async ({ page }) => {
         await open(page, { query: q(queryOf(v.view, null)) })
         await expectPeriod(page, v.view, TODAY)
         await expect(ui(page).next).toBeVisible()
         await expect(ui(page).next).toBeDisabled()
       })
     }
+
+    test('[「前の期間へ」 type] type は button', async ({ page }) => {
+      await open(page)
+      await expect(ui(page).prev).toHaveAttribute('type', 'button')
+    })
+
+    test('[「次の期間へ」 type] type は button', async ({ page }) => {
+      await open(page)
+      await expect(ui(page).next).toHaveAttribute('type', 'button')
+    })
 
     // 今日は 2026-10-11（日曜日）。今日を含む週は 2026/10/05〜2026/10/11
     const nextEnabledCases: { view: View; before: string; beforeName: string; current: string; currentName: string }[] = [
@@ -507,13 +519,13 @@ test.describe('SCR-004 履歴', () => {
     for (const c of nextEnabledCases) {
       const tab = tabOf(c.view)
 
-      test(`[「次の期間へ」 活性条件（${tab}）] 「${tab}」の単位で date が ${c.before}（${c.beforeName}）なら、今日を含む期間より前なので、活性にする`, async ({ page }) => {
+      test(`[「次の期間へ」 disabled（${tab}）] 「${tab}」の単位で date が ${c.before}（${c.beforeName}）なら、今日を含む期間ではないので、非活性にしない`, async ({ page }) => {
         await open(page, { query: q(queryOf(c.view, c.before)) })
         await expectPeriod(page, c.view, c.before)
         await expect(ui(page).next).toBeEnabled()
       })
 
-      test(`[「次の期間へ」 活性条件（${tab}）] 「${tab}」の単位で date が ${c.current}（${c.currentName}）なら、今日を含む期間なので、表示したまま非活性にする`, async ({ page }) => {
+      test(`[「次の期間へ」 disabled（${tab}）] 「${tab}」の単位で date が ${c.current}（${c.currentName}）なら、今日を含む期間なので、表示したまま非活性にする`, async ({ page }) => {
         await open(page, { query: q(queryOf(c.view, c.current)) })
         await expectPeriod(page, c.view, c.current)
         await expect(ui(page).next).toBeVisible()
@@ -521,7 +533,7 @@ test.describe('SCR-004 履歴', () => {
       })
     }
 
-    test('[「次の期間へ」 活性条件 / フォーカス] 非活性のとき、「前の期間へ」から Tab キーを押しても、「次の期間へ」にフォーカスが当たらない', async ({ page }) => {
+    test('[「次の期間へ」 disabled / フォーカス] 非活性のとき、「前の期間へ」から Tab キーを押しても、「次の期間へ」にフォーカスが当たらない', async ({ page }) => {
       await open(page)
       const u = ui(page)
       await expect(u.next).toBeDisabled()

@@ -13,7 +13,8 @@
  *   [残り時間 表示内容]                       … 画面項目「残り時間」の表示内容
  *   [サイクルの進み具合 読み上げ名]           … 画面項目「サイクルの進み具合」の表示内容と備考
  *   [作業するタスク 選択肢]                   … 画面項目「作業するタスク」の備考
- *   [作業するタスク 活性条件]                 … 画面項目「作業するタスク」の活性条件
+ *   [作業するタスク 備考]                     … 画面項目「作業するタスク」の備考（最初に選んでいる値、操作できなくする条件）
+ *   [リセット type]                           … 画面項目「リセット」の type（ほかのボタンも、disabled の列も、同じ形）
  *   [リセット 表示条件]                       … 画面項目「リセット」の表示条件（ほかのボタンも同じ形）
  *   [初期表示]                                … 5. 初期表示時の処理
  *   [開始]                                    … アクション「開始のボタン押下」（ほかのアクションも、操作名で書く）
@@ -449,12 +450,12 @@ test.describe('SCR-002 タイマー', () => {
       await expect(ui(page).taskLabel).toBeVisible()
     })
 
-    test('[作業するタスク 初期値] 選択中のタスクを持つとき、そのタスクを選んだ状態で表示する', async ({ page }) => {
+    test('[作業するタスク 備考] 選択中のタスクを持つとき、そのタスクを選んだ状態で表示する', async ({ page }) => {
       await open(page, withTimer(timer('work', 'idle', { taskId: T2.id })))
       await expectSelectedTask(page, T2.name)
     })
 
-    test('[作業するタスク 初期値] 選択中のタスクを持たないとき、「タスクなし」を選んだ状態で表示する', async ({ page }) => {
+    test('[作業するタスク 備考] 選択中のタスクを持たないとき、「タスクなし」を選んだ状態で表示する', async ({ page }) => {
       await open(page, withTimer(timer('work', 'idle', { taskId: null })))
       await expectSelectedTask(page, NO_TASK)
     })
@@ -507,7 +508,7 @@ test.describe('SCR-002 タイマー', () => {
     for (const phase of PHASES) {
       for (const status of STATUSES) {
         const enabled = phase !== 'work' || status === 'idle'
-        test(`[作業するタスク 活性条件] フェーズが${PHASE_NAME[phase]}で、動作が${STATUS_NAME[status]}のとき、${enabled ? '活性' : '非活性'}にする`, async ({ page }) => {
+        test(`[作業するタスク 備考 / タイマーの状態が変わる] フェーズが${PHASE_NAME[phase]}で、動作が${STATUS_NAME[status]}のとき、${enabled ? '操作できる（非活性にしない）' : '操作できなくする（非活性にする）'}`, async ({ page }) => {
           await open(page, withTimer(timer(phase, status, { taskId: T1.id })))
           await expectSelectedTask(page, T1.name)
           if (enabled) await expect(ui(page).task).toBeEnabled()
@@ -547,7 +548,12 @@ test.describe('SCR-002 タイマー', () => {
         }
       }
 
-      test(`[${button.name} 活性条件] 表示しているとき、活性にする`, async ({ page }) => {
+      test(`[${button.name} type] button にする`, async ({ page }) => {
+        await open(page, withTimer(timer('work', button.shownIn[0])))
+        await expect(button.locator(ui(page))).toHaveAttribute('type', 'button')
+      })
+
+      test(`[${button.name} disabled] 表示しているとき、非活性にしない（常に操作できる）`, async ({ page }) => {
         await open(page, withTimer(timer('work', button.shownIn[0])))
         await expect(button.locator(ui(page))).toBeEnabled()
       })

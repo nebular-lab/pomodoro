@@ -14,6 +14,7 @@
  * テスト名の先頭の [...] は、設計書のどこから作ったケースかを、場面・項目名・条件で示す。
  *   [ヘッダー 表示条件]                    … 画面項目「ヘッダー」の表示条件
  *   [サービス名 表示内容]                  … 画面項目「サービス名」の表示内容
+ *   [「履歴」 href]                        … 画面項目「履歴」の href
  *   [「履歴」 備考]                        … 画面項目「履歴」の備考（現在のページであることを伝える）
  *   [初期表示 / 設定 workMinutes]          … 初期表示時の処理 で、設定（ストレージ）を読むとき
  *   [初期表示 / タイマーの状態 値がない]   … 初期表示時の処理 で、タイマーの状態（ストレージ）を読むとき
@@ -340,6 +341,13 @@ test.describe('HDR-001 共通ヘッダー', () => {
       test(`[「${screen.name}」 表示条件] 「${screen.name}」のリンクを表示する`, async ({ page }) => {
         await open(page)
         await expect(ui(page).link(screen.name)).toBeVisible()
+      })
+    }
+
+    for (const screen of SCREENS) {
+      test(`[「${screen.name}」 href] 「${screen.name}」のリンクの href は「${screen.path}」`, async ({ page }) => {
+        await open(page)
+        await expect(ui(page).link(screen.name)).toHaveAttribute('href', screen.path)
       })
     }
 

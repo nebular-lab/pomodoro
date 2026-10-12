@@ -12,7 +12,9 @@
  *   [見出し 表示内容]                         … 画面項目「見出し」の表示内容
  *   [作業時間の見出し 表示内容]               … 画面項目「作業時間の見出し」の表示内容
  *   [作業時間 選択肢]                         … 画面項目「作業時間」の備考の選択肢
- *   [作業時間 初期値]                         … 画面項目「作業時間」の初期値
+ *   [作業時間 value]                          … 画面項目「作業時間」の value
+ *   [「休憩を自動スタートする」 type]         … 画面項目「休憩を自動スタートする」の type
+ *   [「休憩を自動スタートする」 checked]      … 画面項目「休憩を自動スタートする」の「その他の属性」の checked
  *   [初期表示 / 設定 値がない]                … 5. 初期表示時の処理 で、設定（ストレージ）に値がないとき
  *   [設定の値を変える / 作業時間]             … アクション「設定の値を変える」を、作業時間で行ったとき
  *   [設定の値を変える / 作業時間 境目]        … 同じく、選択肢のいちばん端の値で行ったとき
@@ -24,7 +26,11 @@
  * 実装についての前提:
  * - この画面は API を呼ばない。データは localStorage に持つ（キーと形式は storage.md）
  * - 作業時間・小休憩時間・長休憩時間・サイクルは、設計書のタグのとおり select 要素で、見出しと関連付けられている
- * - チェックボックスは、文言を名前に持つ
+ * - チェックボックスは、文言を名前に持つ。設計書のとおり、type が checkbox の input 要素
+ * - 設計書の画面項目に書かれた属性（type）は、書かれた値になっていることを確かめる。値が - の属性はケースにしない。
+ *   見出しの for は、選択欄を見出しの文言で探せていることで確かめる（ケースは置かない）
+ * - disabled はどの項目も -（常に操作できる）。操作できることは、「設定の値を変える」のケースで確かめている
+ * - 1 行の入力欄がない画面なので、Enter キーのケースは置かない
  * - 見出しは heading のロールを持つ
  * - 特定の属性（role、aria-*、data-*）やライブラリ固有の DOM の形は前提にしない
  * - 共通ヘッダーの中身は、ここでは確かめない（ヘッダーの設計書から別に確かめる）。
@@ -271,19 +277,24 @@ test.describe('SCR-005 設定', () => {
         await expect(item.locator(ui(page)).locator('option')).toHaveText(item.values.map(item.text))
       })
 
-      test(`[${item.name} 初期値] 設定の ${item.field} の値を選んだ状態で表示する`, async ({ page }) => {
+      test(`[${item.name} value] 設定の ${item.field} の値を選んだ状態で表示する`, async ({ page }) => {
         await open(page, { settings: SAVED })
         await expect(selected(item.locator(ui(page)))).toHaveText(item.text(SAVED[item.field]))
       })
     }
 
     for (const item of checks) {
-      test(`[${item.name} 初期値] 設定の ${item.field} が true なら、チェックありで表示する`, async ({ page }) => {
+      test(`[${item.name} type] type は checkbox`, async ({ page }) => {
+        await open(page)
+        await expect(item.locator(ui(page))).toHaveAttribute('type', 'checkbox')
+      })
+
+      test(`[${item.name} checked] 設定の ${item.field} が true なら、チェックありで表示する`, async ({ page }) => {
         await open(page, { settings: { ...DEFAULTS, [item.field]: true } })
         await expect(item.locator(ui(page))).toBeChecked()
       })
 
-      test(`[${item.name} 初期値] 設定の ${item.field} が false なら、チェックなしで表示する`, async ({ page }) => {
+      test(`[${item.name} checked] 設定の ${item.field} が false なら、チェックなしで表示する`, async ({ page }) => {
         await open(page, { settings: { ...SAVED, [item.field]: false } })
         await expect(item.locator(ui(page))).not.toBeChecked()
       })
