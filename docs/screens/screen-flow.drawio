@@ -1,0 +1,25 @@
+<mxfile host="65bd71144e">
+    <diagram id="screen-flow" name="画面遷移図">
+        <mxGraphModel dx="545" dy="845" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0" />
+                <mxCell id="1" parent="0" />
+                <mxCell id="note-hidden" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacing=8;fillColor=#ffffff;strokeColor=#999999;" value="図に描いていない遷移&lt;br&gt;・どの画面でも、共通ヘッダーの「タイマー」→ SCR-002 タイマー&lt;br&gt;・どの画面でも、共通ヘッダーの「タスク管理」→ SCR-003 タスク管理&lt;br&gt;・どの画面でも、共通ヘッダーの「履歴」→ SCR-004 履歴&lt;br&gt;・どの画面でも、共通ヘッダーの「設定」→ SCR-005 設定&lt;br&gt;（いまの画面のリンクを押したときは、遷移しない）&lt;br&gt;&lt;br&gt;画面の中のボタンやリンクで、別の画面へ移るものはない" vertex="1">
+                    <mxGeometry height="170" width="640" x="40" y="-60" as="geometry" />
+                </mxCell>
+                <mxCell id="scr-002" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=60;collapsible=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="SCR-002 タイマー&lt;br&gt;/" vertex="1">
+                    <mxGeometry height="140" width="240" x="40" y="140" as="geometry" />
+                </mxCell>
+                <mxCell id="scr-003" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=60;collapsible=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="SCR-003 タスク管理&lt;br&gt;/tasks" vertex="1">
+                    <mxGeometry height="140" width="240" x="340" y="140" as="geometry" />
+                </mxCell>
+                <mxCell id="scr-004" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=60;collapsible=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="SCR-004 履歴&lt;br&gt;/history" vertex="1">
+                    <mxGeometry height="140" width="240" x="640" y="140" as="geometry" />
+                </mxCell>
+                <mxCell id="scr-005" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=60;collapsible=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="SCR-005 設定&lt;br&gt;/settings" vertex="1">
+                    <mxGeometry height="140" width="240" x="940" y="140" as="geometry" />
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
