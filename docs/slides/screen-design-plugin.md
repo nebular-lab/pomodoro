@@ -82,9 +82,9 @@ style: |
 
 ---
 
-## Pluginとは
+## そもそも、Pluginとは
 
-Claude に、あとから足せる拡張のまとまり。(codexやcopilotでは)
+Claude に、あとから足せる拡張のまとまり。
 
 - 中身は、skill や command や agent
 - Git のリポジトリ（マーケットプレイス）で配る
@@ -95,7 +95,6 @@ Claude に、あとから足せる拡張のまとまり。(codexやcopilotでは
 /plugin marketplace add nebular-lab/nebular-plugins
 /plugin install screen-design@nebular-plugins
 ```
-
 ---
 
 ## [screen-design plugin](https://github.com/nebular-lab/nebular-plugins/tree/main/plugins/screen-design) は何をするプラグインか
@@ -128,6 +127,13 @@ docs/screens/
     ├── SCR-002_timer.spec.ts          Playwright テスト
     └── SCR-002_timer.manual-test.md   手動テスト
 ```
+
+---
+
+## 作ってみようと思ったきっかけ
+
+- 画面設計の観点は、どんな画面を作るにしてもあまり変わらないと思うので、skillとして共有しておくのはいいと思った。
+- 画面設計をもとに、ブラウザ操作をする自動テストコードを作らせるのはいいのではと思った。
 
 ---
 
@@ -190,7 +196,7 @@ docs/screens/
 | アクセシビリティ | 選択肢のない、決まったルール                                                        |
 | ライブラリの設定 | react-hook-form と TanStack Query の、既定の設定                                    |
 
-sample: [common-rules.md](https://github.com/nebular-lab/nebular-plugins/blob/main/plugins/screen-design/examples/docs/screens/common-rules.md)
+sample: [common-rules.md](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/common-rules.md)
 
 ---
 
@@ -217,7 +223,7 @@ sample: [common-rules.md](https://github.com/nebular-lab/nebular-plugins/blob/ma
 
 ---
 
-## 生成されるもの: `SCR-002_timer.html`
+## 生成されるもの: [SCR-002_timer.html](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/SCR-002_timer/SCR-002_timer.html)
 
 <div class="cols">
 <div>
@@ -252,8 +258,6 @@ sample: [common-rules.md](https://github.com/nebular-lab/nebular-plugins/blob/ma
 
 <img class="shot" src="images/wf-SCR-004_history.png" style="max-height: 440px;">
 
-<span class="note">ワイヤーフレーム（履歴）</span>
-
 </div>
 <div>
 
@@ -285,7 +289,7 @@ sample: [common-rules.md](https://github.com/nebular-lab/nebular-plugins/blob/ma
 
 <!-- _class: tiny -->
 
-## サンプル: `SCR-005_settings.md`（省略あり）
+## サンプル: [SCR-005_settings.md](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/SCR-005_settings/SCR-005_settings.md)
 
 <div class="cols doc">
 <div>
@@ -377,7 +381,7 @@ sample: [common-rules.md](https://github.com/nebular-lab/nebular-plugins/blob/ma
 
 <!-- _class: tiny -->
 
-## 6. アクション（`SCR-005_settings.md`）
+## 6. アクション [SCR-005_settings.md](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/SCR-005_settings/SCR-005_settings.md)
 
 <div class="doc one">
 <div>
@@ -412,7 +416,7 @@ sample: [common-rules.md](https://github.com/nebular-lab/nebular-plugins/blob/ma
 <div class="cols">
 <div>
 
-### `messages.md`
+### [messages.md](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/messages.md)
 
 | ID      | 種別   | 文言                                   |
 | ------- | ------ | -------------------------------------- |
@@ -424,7 +428,7 @@ sample: [common-rules.md](https://github.com/nebular-lab/nebular-plugins/blob/ma
 </div>
 <div>
 
-### `storage.md`
+### [storage.md](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/storage.md)
 
 | フィールド | 型      | 内容                     |
 | ---------- | ------- | ------------------------ |
@@ -455,13 +459,12 @@ sample: [common-rules.md](https://github.com/nebular-lab/nebular-plugins/blob/ma
 - テスト名の先頭に、**設計書のどの記述から作ったか**（出典）を付ける
   → テストコードを読めば、ケースの一覧になる
 - 自動で確かめられないケースは、**手動テスト**（Markdown）に書く
-- 書いたあと、別のエージェントが設計書と突き合わせて、**漏れをチェック**する
 
 ---
 
 <!-- _class: small -->
 
-## 生成されるもの: `SCR-002_timer.spec.ts`
+## 生成されるもの: [SCR-002_timer.spec.ts](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/SCR-002_timer/SCR-002_timer.spec.ts)
 
 ```ts
 const boundaries = [
@@ -486,7 +489,7 @@ for (const c of boundaries) {
 
 <!-- _class: small -->
 
-## 生成されるもの: `SCR-002_timer.manual-test.md`
+## 生成されるもの: [SCR-002_timer.manual-test.md](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/SCR-002_timer/SCR-002_timer.manual-test.md)
 
 | No  | 出典                          | ケース                   | 自動で確かめられない理由           | 確かめ方                                                                    |
 | --- | ----------------------------- | ------------------------ | ---------------------------------- | --------------------------------------------------------------------------- |
@@ -526,6 +529,10 @@ for (const c of boundaries) {
 
 ## 感想
 
-- pluginで配布出来るのはよい。
-- （ここに書く）
-- （ここに書く）
+- よかったこと
+  - 設計の観点を共有するのはいいなと思った。
+  - 動作定義を書くときに、要件の考慮漏れに気がつけるのでいいと思った。
+  - pluginで配布出来るのはよい。
+- 微妙だったこと
+  - たった4画面でplaywrightのテストケースが約1000件は多すぎる。実行時間は約1.5分。本来ならばTSの関数の単体テストでカバーするような境界値チェックなどもすべてplaywightでテストすることになっている。
+  - skillを更新すると、そのskillを使っている方も更新しないと行けないのが面倒。更新頻度が落ち着いてきて、ある程度fixしてから配布する方が良い。
