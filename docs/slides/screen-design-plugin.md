@@ -403,10 +403,6 @@ sample: [common-rules.md](https://github.com/nebular-lab/pomodoro/blob/main/docs
 </div>
 </div>
 
-- アクション一覧で、操作と、対象の部品（No）を対応させる
-- 操作 1 つ = アクション 1 つ。手順を、番号つきで書く
-- 保存する値は `STG-NNN`、メッセージは `MSG-NNN` で参照する
-
 ---
 
 <!-- _class: small -->
@@ -464,20 +460,25 @@ sample: [common-rules.md](https://github.com/nebular-lab/pomodoro/blob/main/docs
 
 <!-- _class: small -->
 
-## 生成されるもの: [SCR-002_timer.spec.ts](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/SCR-002_timer/SCR-002_timer.spec.ts)
+## 生成されるもの: [SCR-005_settings.spec.ts](https://github.com/nebular-lab/pomodoro/blob/main/docs/screens/SCR-005_settings/SCR-005_settings.spec.ts)
 
 ```ts
-const boundaries = [
-  { name: '今日の 0:00:00（日本時間）',        completedAt: '2026-10-10T15:00:00.000Z', count: '1' },
-  { name: '今日の 23:59:59.999（日本時間）',   completedAt: '2026-10-11T14:59:59.999Z', count: '1' },
-  { name: '前の日の 23:59:59.999（日本時間）', completedAt: '2026-10-10T14:59:59.999Z', count: '0' },
-  { name: '次の日の 0:00:00（日本時間）',      completedAt: '2026-10-11T15:00:00.000Z', count: '0' },
-]
-for (const c of boundaries) {
-  test(`[今日のポモドーロ数 表示内容 / 今日に入る作業記録] 完了した時刻が${c.name}の作業記録は、${c.count} 件として数える`,
+for (const item of selects) {   // 作業時間、小休憩時間、長休憩時間、サイクル
+  const [min] = item.values
+  const max = item.values[item.values.length - 1]
+
+  test(`[設定の値を変える / ${item.name} 境目] いちばん小さい選択肢（${item.text(min)}）を選ぶと、${min} を保存する`,
     async ({ page }) => {
-      await open(page, withTimer(timer('work', 'idle'), { records: [{ completedAt: c.completedAt, taskId: null, seconds: 1500 }] }))
-      await expect(ui(page).today).toHaveText(`今日 ${c.count} ポモドーロ`)
+      await open(page, { settings: SAVED })
+      await item.locator(ui(page)).selectOption({ label: item.text(min) })
+      await expectSettings(page, { ...SAVED, [item.field]: min })
+    })
+
+  test(`[設定の値を変える / ${item.name} 境目] いちばん大きい選択肢（${item.text(max)}）を選ぶと、${max} を保存する`,
+    async ({ page }) => {
+      await open(page, { settings: SAVED })
+      await item.locator(ui(page)).selectOption({ label: item.text(max) })
+      await expectSettings(page, { ...SAVED, [item.field]: max })
     })
 }
 ```
@@ -530,10 +531,11 @@ for (const c of boundaries) {
 ## 感想
 
 - よかったこと
-  - 設計の観点を共有するのはいいなと思った。
-  - 詳しめに動作定義を書くようにすれば、要件の考慮漏れに気がつけるのでいいと思った。
-  - pluginは配布しやすいと思った。
+  - 設計の観点を共有するのはいいアイデアだと思った。
+  - 動作定義を書くようにすれば、要件の考慮漏れに気がつけるのでいいと思った。
+  - pluginは配布しやすいと思った。Githubのレポジトリにpushすればよい。
 - 微妙だったこと
-  - 4画面でplaywrightのテストケースが約1000件は多すぎる。実行時間は約1.5分。単体テストでカバーするような境界値チェックなどもすべてplaywightでテストすることになっている。
+  - 4画面でplaywrightのテストケースが約1000件は多すぎる感じがする。
+    - 単体テストでカバーするような境界値チェックなどもすべてplaywightでテストすることになっている。とはいえ、実行時間が長いくらいで、大きな問題ではないので、別にいいのかなという気もしている。
   - skillを配布するという形式上、プロジェクトごとにskillをカスタマイズすることができない。
   - そのskillを使っているプロジェクトが複数ある場合、気軽にskillを更新できない。導入時の最新版のskillをプロジェクトのコードにコピーして、あとはそのプロジェクトが管理する、とする方が楽かも。
